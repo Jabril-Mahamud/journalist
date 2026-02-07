@@ -42,6 +42,7 @@ frontend-deploy:
 	kubectl apply -k infra/k8s/base/frontend
 .PHONY: frontend
 frontend: frontend-build frontend-load frontend-deploy
+	@echo "✅ Frontend deployed successfully"
 # ===========================
 # Dev target – build, deploy, and port-forward everything
 # ===========================
@@ -49,13 +50,12 @@ frontend: frontend-build frontend-load frontend-deploy
 .PHONY: dev
 dev: backend frontend
 	@echo "✅ Backend and Frontend deployed!"
-	@echo "🌐 Starting port-forwards..."
-	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
-	@echo "Backend:  http://localhost:$(BACKEND_PORT)"
-	@echo "Press Ctrl+C to stop port-forwards"
-	( kubectl port-forward -n $(NAMESPACE) svc/backend $(BACKEND_PORT):$(BACKEND_PORT) & \
-	kubectl port-forward -n $(NAMESPACE) svc/frontend $(FRONTEND_PORT):80 & \
-	wait )
+	@echo "🌐 Access the services at:"
+	@echo "   Backend: http://localhost:8001"
+	@echo "   Frontend: http://localhost:8080"
+	@echo "💡 Run port-forwards manually in separate terminals:"
+	@echo "   kubectl port-forward -n $(NAMESPACE) svc/backend $(BACKEND_PORT):$(BACKEND_PORT)"
+	@echo "   kubectl port-forward -n $(NAMESPACE) svc/frontend $(FRONTEND_PORT):80"
 
 # ===========================
 # Clean targets
@@ -68,3 +68,15 @@ clean:
 	kubectl delete svc backend frontend -n $(NAMESPACE) --ignore-not-found
 	@echo "🧹 Deleting leftover pods"
 	kubectl delete pod -n $(NAMESPACE) -l 'app in (backend,frontend)' --ignore-not-found || true
+
+# ===========================
+# Debug targets
+# ===========================
+.PHONY: debug-frontend
+debug-frontend:
+	@echo "Checking frontend deployment status..."
+	kubectl get pods -n $(NAMESPACE) -l app=frontend
+	@echo "Checking frontend service..."
+	kubectl get svc frontend -n $(NAMESPACE)
+	@echo "Checking frontend logs..."
+	kubectl logs -n $(NAMESPACE) -l app=frontend --tail=20

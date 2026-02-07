@@ -80,6 +80,18 @@ Each section includes:
 
 Do not skip the notes. That is where the learning sticks.
 
+## Development workflow
+To start the development environment:
+1. Run `make dev` (or `make backend` and `make frontend` separately)
+2. Access the backend at http://localhost:8001
+3. Access the frontend at http://localhost:8080
+
+For local development, you can also run the port-forwards manually:
+```sh
+kubectl port-forward -n journalist svc/backend 8001:8001
+kubectl port-forward -n journalist svc/frontend 8080:80
+```
+
 ## Endpoints you will keep stable
 Once the backend exists, keep these endpoints stable because they will power probes and smoke checks.
 

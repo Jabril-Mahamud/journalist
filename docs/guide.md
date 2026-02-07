@@ -637,6 +637,31 @@ kubectl get pods -n journalist
 
 # Stage 5: Make env handling nicer (recommended after it works)
 
+# Development workflow
+After the backend and frontend are running successfully, you can access them using:
+- Backend: http://localhost:8001
+- Frontend: http://localhost:8080
+
+## Using the Makefile
+The `make dev` command will:
+1. Build and deploy all components
+2. Provide instructions for accessing the services
+
+If you prefer to run port-forwards manually, you can:
+```sh
+kubectl port-forward -n journalist svc/backend 8001:8001
+kubectl port-forward -n journalist svc/frontend 8080:80
+```
+
+## Testing the endpoints
+After starting the port-forwards, you can test the services:
+```sh
+curl -sS http://localhost:8001/health
+curl -sS http://localhost:8001/ready
+```
+
+# Make env handling nicer (recommended after it works)
+
 Right now you are editing YAML with placeholder values.
 Once you are comfortable, move secrets creation to commands so you do not store secret values in repo.
 
