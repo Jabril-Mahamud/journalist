@@ -1,0 +1,14 @@
+backend:
+  image: journalist-backend:latest
+  replicas: 1
+  port: 8001
+
+frontend:
+  image: journalist-frontend:latest
+  replicas: 1
+  port: 3001
+
+postgres:
+  image: postgres:15-alpine
+  storage: 1Gi
+  password: devpassword

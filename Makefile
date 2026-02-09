@@ -1,0 +1,177 @@
+.PHONY: help build load deploy restart logs clean dev setup port-forward status kill-ports init check-cluster
+
+# Variables
+CLUSTER_NAME = journalist
+BACKEND_IMAGE = journalist-backend:latest
+FRONTEND_IMAGE = journalist-frontend:latest
+HELM_RELEASE = journalist
+BACKEND_PORT = 8001
+FRONTEND_PORT = 3001
+
+## help: Show this help message
+help:
+	@echo "Journalist Development Commands:"
+	@echo ""
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
+
+## init: Complete first-time setup (cluster + deploy)
+init: setup dev
+	@echo ""
+	@echo "🎉 Journalist is ready!"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Run 'make port-forward' to access the apps"
+	@echo "  2. Visit http://localhost:$(FRONTEND_PORT)"
+	@echo "  3. Run 'make help' to see all commands"
+
+## setup: Create Kind cluster
+setup:
+	@echo "Checking if cluster exists..."
+	@if kind get clusters 2>/dev/null | grep -q "^$(CLUSTER_NAME)$$"; then \
+		echo "✓ Cluster '$(CLUSTER_NAME)' already exists"; \
+	else \
+		echo "Creating Kind cluster..."; \
+		kind create cluster --name $(CLUSTER_NAME); \
+		echo "✓ Cluster created"; \
+	fi
+
+## build: Build Docker images for backend and frontend
+build:
+	@echo "Building backend..."
+	docker build -t $(BACKEND_IMAGE) ./backend
+	@echo "Building frontend..."
+	docker build -t $(FRONTEND_IMAGE) ./frontend
+	@echo "✓ Images built"
+
+## load: Load Docker images into Kind cluster
+load: check-cluster
+	@echo "Loading images into Kind..."
+	kind load docker-image $(BACKEND_IMAGE) --name $(CLUSTER_NAME)
+	kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
+	@echo "✓ Images loaded"
+
+## deploy: Deploy application using Helm
+deploy: check-cluster
+	@echo "Deploying with Helm..."
+	helm upgrade --install $(HELM_RELEASE) ./journalist
+	@echo "✓ Deployed"
+
+## dev: Full development deploy (build + load + deploy)
+dev: check-cluster build load deploy
+	@echo "✓ Development environment ready!"
+	@echo ""
+	@echo "Run 'make port-forward' to access the apps"
+	@echo "Run 'make logs' to view logs"
+
+## check-cluster: Internal - verify cluster exists
+check-cluster:
+	@if ! kind get clusters 2>/dev/null | grep -q "^$(CLUSTER_NAME)$$"; then \
+		echo "❌ Error: Cluster '$(CLUSTER_NAME)' not found"; \
+		echo ""; \
+		echo "Run 'make setup' to create the cluster first, or"; \
+		echo "Run 'make init' for complete first-time setup"; \
+		exit 1; \
+	fi
+
+## restart: Restart all deployments
+restart:
+	kubectl rollout restart deployment/backend
+	kubectl rollout restart deployment/frontend
+	kubectl rollout restart statefulset/postgres
+	@echo "✓ Deployments restarted"
+
+## kill-ports: Kill processes using ports 3001 and 8001
+kill-ports:
+	@echo "Killing processes on ports $(BACKEND_PORT) and $(FRONTEND_PORT)..."
+	@lsof -ti:$(BACKEND_PORT) | xargs kill -9 2>/dev/null || true
+	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
+	@echo "✓ Ports freed"
+
+## port-forward: Forward ports to local machine
+port-forward:
+	@echo "Checking if ports are available..."
+	@if lsof -Pi :$(BACKEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "⚠️  Port $(BACKEND_PORT) is already in use"; \
+		echo "Run 'make kill-ports' to free it, or use a different port"; \
+		exit 1; \
+	fi
+	@if lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "⚠️  Port $(FRONTEND_PORT) is already in use"; \
+		echo "Run 'make kill-ports' to free it, or use a different port"; \
+		exit 1; \
+	fi
+	@echo "Port forwarding backend to localhost:$(BACKEND_PORT)..."
+	@echo "Port forwarding frontend to localhost:$(FRONTEND_PORT)..."
+	@echo ""
+	@echo "✅ Access frontend at: http://localhost:$(FRONTEND_PORT)"
+	@echo "✅ Access backend at: http://localhost:$(BACKEND_PORT)"
+	@echo ""
+	@echo "Press Ctrl+C to stop port forwarding"
+	@kubectl port-forward service/backend $(BACKEND_PORT):$(BACKEND_PORT) & \
+	kubectl port-forward service/frontend $(FRONTEND_PORT):$(FRONTEND_PORT)
+
+## logs: Show logs from all pods
+logs:
+	@echo "=== Backend Logs ==="
+	kubectl logs -l app=backend --tail=50 -f
+
+## logs-frontend: Show frontend logs
+logs-frontend:
+	kubectl logs -l app=frontend --tail=50 -f
+
+## logs-backend: Show backend logs
+logs-backend:
+	kubectl logs -l app=backend --tail=50 -f
+
+## logs-postgres: Show postgres logs
+logs-postgres:
+	kubectl logs postgres-0 --tail=50 -f
+
+## status: Show status of all resources
+status:
+	@echo "=== Pods ==="
+	kubectl get pods
+	@echo ""
+	@echo "=== Services ==="
+	kubectl get services
+	@echo ""
+	@echo "=== Helm Releases ==="
+	helm list
+
+## clean: Remove deployment but keep cluster
+clean:
+	@echo "Removing Helm release..."
+	-helm uninstall $(HELM_RELEASE) 2>/dev/null || true
+	@echo "✓ Deployment removed"
+
+## destroy: Destroy Kind cluster
+destroy:
+	@echo "Destroying Kind cluster..."
+	kind delete cluster --name $(CLUSTER_NAME)
+	@echo "✓ Cluster destroyed"
+
+## rebuild-backend: Rebuild and redeploy backend only
+rebuild-backend:
+	docker build -t $(BACKEND_IMAGE) ./backend
+	kind load docker-image $(BACKEND_IMAGE) --name $(CLUSTER_NAME)
+	kubectl delete pod -l app=backend
+	@echo "✓ Backend rebuilt and redeployed"
+
+## rebuild-frontend: Rebuild and redeploy frontend only
+rebuild-frontend:
+	docker build -t $(FRONTEND_IMAGE) ./frontend
+	kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
+	kubectl delete pod -l app=frontend
+	@echo "✓ Frontend rebuilt and redeployed"
+
+## shell-backend: Open shell in backend pod
+shell-backend:
+	kubectl exec -it deployment/backend -- /bin/bash
+
+## shell-frontend: Open shell in frontend pod
+shell-frontend:
+	kubectl exec -it deployment/frontend -- /bin/sh
+
+## shell-postgres: Open psql in postgres pod
+shell-postgres:
+	kubectl exec -it postgres-0 -- psql -U postgres -d journalist
