@@ -175,3 +175,15 @@ shell-frontend:
 ## shell-postgres: Open psql in postgres pod
 shell-postgres:
 	kubectl exec -it postgres-0 -- psql -U postgres -d journalist
+
+## stop-all: Stop port-forwards and remove app (keeps data + cluster)
+## stop: Stop local dev processes (port-forwards)
+stop: kill-ports
+	@echo "✓ Local processes stopped"
+
+## stop-all: Stop work for the day (keeps cluster + data)
+stop-all: stop clean
+	@echo ""
+	@echo "🛑 Development environment stopped for the day"
+	@echo "✓ Cluster kept"
+	@echo "✓ Persistent data preserved"
