@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: frontend-config
-  namespace: journalist
-data:
-  BACKEND_INTERNAL_URL: http://backend:8001
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Z2FtZS1nb29zZS05Mi5jbGVyay5hY2NvdW50cy5kZXYk

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: backend-config
-  namespace: journalist
-data:
-  APP_ENV: local
