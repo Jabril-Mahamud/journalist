@@ -1,122 +1,152 @@
-# README.md
+# Journalist 📝
 
-# Journalist
-A lightweight journaling app that will become a proper Todoist companion.
+**Journalist** is a journaling app built to learn Kubernetes properly while still shipping something useful.
 
-This repo is intentionally structured as a Kubernetes learning project. You will build the app and its infrastructure in small steps, and each step teaches a specific Kubernetes concept.
+The end goal is a **journaling app that can sync with Todoist**, so your daily reflections and your tasks live in the same mental space.
 
-## What you are building
-1. Frontend
-   1. Next.js App Router
-   2. Tailwind and daisyUI
-   3. Talks to backend through a Next proxy route only
-2. Backend
-   1. FastAPI
-   2. SQLModel and Alembic
-   3. Exposes health and readiness endpoints
-3. Database
-   1. Postgres 17
-4. Auth
-   1. Clerk on the frontend
-   2. Backend receives a Bearer token
+This project is intentionally designed as:
 
-## Repo status
-Right now the repo is empty except `.env.local`.
+* A real MVP you could actually extend
+* A hands-on Kubernetes learning lab
+* A companion to *The Kubernetes Book* by Nigel Poulton
 
-That is expected. The first milestones are about scaffolding, then containers, then Kubernetes.
+If you finish this project end-to-end, you will **genuinely understand Kubernetes fundamentals**, not just YAML incantations.
 
-## Learning goals
-By the end you will be able to:
-1. Run a multi service app on Kubernetes locally
-2. Use Services, Deployments, StatefulSets, and persistent storage correctly
-3. Configure apps using ConfigMaps and Secrets
-4. Add health and readiness probes using real endpoints
-5. Route traffic using Ingress
-6. Run database migrations using a Job pattern
-7. Package your app as a Helm chart
-8. Deploy with a GitOps workflow (optional but recommended)
-9. Debug common Kubernetes issues using logs, events, and describe output
+---
 
-## Ground rules
-1. Keep changes small and keep the project runnable at each milestone
-2. Prefer understanding over copying
-3. If you copy something from a video or book, write a one sentence reason in your notes for why it exists
-4. Keep all environment configuration in the root `.env.local` only
+## Tech Stack
 
-## Environment configuration
-`.env.local` is the only env file. It will hold variables like:
-1. WEB_PORT
-2. API_PORT
-3. DB_PORT
-4. DATABASE_URL
-5. API_INTERNAL_URL
+### Application
 
-Later, you will map these values into Kubernetes ConfigMaps and Secrets.
+* **Frontend:** Next.js
+* **Backend:** FastAPI (Python)
+* **Database:** PostgreSQL
+* **Auth:** Clerk or SuperTokens
+* **Future Integration:** Todoist API
 
-## Suggested repo structure
-You will create this structure as part of the TODO list.
+### Platform / Infra
 
-1. apps
-   1. backend
-   2. frontend
-2. infra
-   1. compose
-   2. k8s
-      1. base
-      2. overlays
-         1. local
-3. docs
-4. TODO.md
+* **Containers:** Docker
+* **Orchestration:** Kubernetes (Kind)
+* **Ingress:** NGINX Ingress Controller
+* **Config Management:** ConfigMaps & Secrets
+* **Packaging:** Helm (later stage)
+* **CI/CD:** GitHub Actions (optional)
 
-## How to use this repo as a tutorial
-Work through `TODO.md` from top to bottom.
+---
 
-Each section includes:
-1. Goal
-2. What you will build
-3. Why it matters
-4. Definition of done
-5. Notes to fill in from YouTube and The Kubernetes Book
+## Why This Project Exists
 
-Do not skip the notes. That is where the learning sticks.
+Most Kubernetes tutorials:
 
-## Development workflow
-To start the development environment:
-1. Run `make dev` (or `make backend` and `make frontend` separately)
-2. Access the backend at http://localhost:8001
-3. Access the frontend at http://localhost:8080
+* Are toy examples
+* Skip *why* things exist
+* Don’t resemble real systems
 
-For local development, you can also run the port-forwards manually:
-```sh
-kubectl port-forward -n journalist svc/backend 8001:8001
-kubectl port-forward -n journalist svc/frontend 8080:80
+Journalist is different:
+
+* You deploy a real frontend + backend + database
+* You deal with auth secrets
+* You expose services correctly
+* You prepare for third-party integrations (Todoist)
+
+Everything maps cleanly to concepts from *The Kubernetes Book*.
+
+---
+
+## Architecture (High Level)
+
+Client Browser
+→ Ingress
+→ Frontend Service (Next.js)
+→ Backend Service (FastAPI)
+→ PostgreSQL Service
+
+* Each component runs in its own **Deployment**
+* Internal traffic uses **ClusterIP Services**
+* External traffic enters through **Ingress**
+* Configuration is split between **ConfigMaps** and **Secrets**
+
+---
+
+## Repo Structure
+
+```
+.
+├── frontend/        # Next.js app
+├── backend/         # FastAPI app
+├── k8s/             # Raw Kubernetes manifests
+│   ├── postgres/
+│   ├── backend/
+│   ├── frontend/
+│   └── ingress/
+├── helm/            # Helm chart (later)
+├── guide.md         # Step-by-step learning guide
+└── README.md
 ```
 
-## Endpoints you will keep stable
-Once the backend exists, keep these endpoints stable because they will power probes and smoke checks.
+---
 
-1. API Health: http://localhost:${API_PORT}/health
-2. API Ready: http://localhost:${API_PORT}/ready
-3. Todoist Status: http://localhost:${API_PORT}/api/todoist/status
-4. Proxy to backend via frontend: http://localhost:${WEB_PORT}/api/backend/health
+## Prerequisites
 
-## Milestone map
-1. M0 Repo scaffold and local run using Compose
-2. M1 Container images for frontend and backend
-3. M2 Local Kubernetes cluster running
-4. M3 Postgres StatefulSet with persistence
-5. M4 Backend Deployment with probes and config
-6. M5 Frontend Deployment and internal routing
-7. M6 Ingress for browser access
-8. M7 Alembic migration Job pattern
-9. M8 Helm chart packaging
-10. M9 GitOps deployment (optional)
-11. M10 Observability and hardening (optional)
+* Docker
+* kubectl
+* Kind
+* Basic React knowledge
+* Basic Python knowledge
 
-## How to contribute to your own learning
-Keep a running log in `docs/learning-log.md` with entries like:
-1. Date
-2. What you built
-3. What broke
-4. How you fixed it
-5. One concept you can explain now
+You **do not** need prior Kubernetes experience.
+
+---
+
+## How to Use This Repo
+
+1. Read **guide.md**
+2. Do not skip steps
+3. Run commands manually
+4. Break things on purpose
+5. Fix them
+
+This is a learning repo, not a copy-paste repo.
+
+---
+
+## Roadmap
+
+### Phase 1 — Core Platform
+
+* [ ] Next.js frontend deployed to K8s
+* [ ] FastAPI backend deployed to K8s
+* [ ] PostgreSQL with persistent storage
+* [ ] Ingress-based access
+
+### Phase 2 — Platform Skills
+
+* [ ] ConfigMaps vs Secrets
+* [ ] Helm chart
+* [ ] Resource limits
+* [ ] Scaling replicas
+
+### Phase 3 — Product
+
+* [ ] User auth
+* [ ] Journal CRUD
+* [ ] Todoist API sync
+* [ ] Background sync jobs (CronJobs)
+
+---
+
+## Naming
+
+Working name: **Journalist**
+
+Because it journals.
+And it’s nosy about your tasks.
+
+---
+
+## Final Note
+
+If this ever feels hard: good.
+
+Kubernetes only clicks once you *wrestle* with it.
