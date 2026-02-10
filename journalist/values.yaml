@@ -11,4 +11,6 @@ frontend:
 postgres:
   image: postgres:15-alpine
   storage: 1Gi
+  user: postgres
   password: devpassword
+  db: journalist

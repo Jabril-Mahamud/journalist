@@ -5,6 +5,7 @@
 The end goal is a **journaling app that can sync with Todoist**, so your daily reflections and your tasks live in the same mental space.
 
 This project is intentionally designed as:
+
 * A real MVP you could actually extend
 * A hands-on Kubernetes learning lab
 * A companion to *The Kubernetes Book* by Nigel Poulton
@@ -16,6 +17,7 @@ If you finish this project end-to-end, you will **genuinely understand Kubernete
 ## Tech Stack
 
 ### Application
+
 * **Frontend:** Next.js (Node 20+)
 * **Backend:** FastAPI (Python 3.11)
 * **Database:** PostgreSQL 15
@@ -23,6 +25,7 @@ If you finish this project end-to-end, you will **genuinely understand Kubernete
 * **Future Integration:** Todoist API
 
 ### Infrastructure
+
 * **Orchestration:** Kubernetes (via Kind for local dev)
 * **Package Manager:** Helm
 * **Container Runtime:** Docker
@@ -33,13 +36,13 @@ If you finish this project end-to-end, you will **genuinely understand Kubernete
 
 Before you begin, ensure you have the following installed:
 
-- **Docker** - [Install Docker](https://docs.docker.com/get-docker/)
-- **Kind** (Kubernetes in Docker) - [Install Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
-- **kubectl** - [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
-- **Helm** - [Install Helm](https://helm.sh/docs/intro/install/)
-- **Make** - Usually pre-installed on Linux/macOS
-- **Node.js 20+** - [Install Node](https://nodejs.org/)
-- **Python 3.11+** - [Install Python](https://www.python.org/downloads/)
+* **Docker** - [Install Docker](https://docs.docker.com/get-docker/)
+* **Kind** (Kubernetes in Docker) - [Install Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+* **kubectl** - [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
+* **Helm** - [Install Helm](https://helm.sh/docs/intro/install/)
+* **Make** - Usually pre-installed on Linux/macOS
+* **Node.js 20+** - [Install Node](https://nodejs.org/)
+* **Python 3.11+** - [Install Python](https://www.python.org/downloads/)
 
 ### Quick Install (Ubuntu/Debian)
 
@@ -59,7 +62,7 @@ sudo mv ./kind /usr/local/bin/kind
 
 ## Project Structure
 
-```
+```md
 journalist/
 ├── backend/                    # FastAPI backend
 │   ├── main.py                # Main API application
@@ -91,6 +94,7 @@ make init
 ```
 
 This single command will:
+
 1. Create a Kind cluster
 2. Build Docker images
 3. Load images into the cluster
@@ -103,9 +107,10 @@ make port-forward
 ```
 
 Then visit:
-- **Frontend:** http://localhost:3001
-- **Backend API:** http://localhost:8001
-- **Backend Health:** http://localhost:8001/health
+
+* **Frontend:** <http://localhost:3001>
+* **Backend API:** <http://localhost:8001>
+* **Backend Health:** <http://localhost:8001/health>
 
 ---
 
@@ -324,24 +329,24 @@ make status
 
 ## Next Steps
 
-- [ ] Implement user authentication (Clerk/SuperTokens)
-- [ ] Create journal entry CRUD endpoints
-- [ ] Build frontend UI for journaling
-- [ ] Set up PostgreSQL schema and migrations
-- [ ] Integrate Todoist API
-- [ ] Add proper logging and monitoring
-- [ ] Set up CI/CD pipeline
-- [ ] Deploy to production cluster
+* [ ] Implement user authentication (Clerk/SuperTokens)
+* [ ] Create journal entry CRUD endpoints
+* [ ] Build frontend UI for journaling
+* [ ] Set up PostgreSQL schema and migrations
+* [ ] Integrate Todoist API
+* [ ] Add proper logging and monitoring
+* [ ] Set up CI/CD pipeline
+* [ ] Deploy to production cluster
 
 ---
 
 ## Learning Resources
 
-- [The Kubernetes Book by Nigel Poulton](https://www.amazon.com/Kubernetes-Book-Nigel-Poulton/dp/1916585000)
-- [Kubernetes Documentation](https://kubernetes.io/docs/home/)
-- [Helm Documentation](https://helm.sh/docs/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Next.js Documentation](https://nextjs.org/docs)
+* [The Kubernetes Book by Nigel Poulton](https://www.amazon.com/Kubernetes-Book-Nigel-Poulton/dp/1916585000)
+* [Kubernetes Documentation](https://kubernetes.io/docs/home/)
+* [Helm Documentation](https://helm.sh/docs/)
+* [FastAPI Documentation](https://fastapi.tiangolo.com/)
+* [Next.js Documentation](https://nextjs.org/docs)
 
 ---
 
@@ -354,10 +359,11 @@ MIT
 ## Contributing
 
 This is a learning project, but PRs are welcome! Feel free to:
-- Report bugs
-- Suggest improvements
-- Share what you've learned
-- Add features
+
+* Report bugs
+* Suggest improvements
+* Share what you've learned
+* Add features
 
 ---
 

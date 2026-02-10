@@ -30,5 +30,18 @@ spec:
                 ports:
                   - containerPort: 8001
                 env:
-                  - name: DATABASE_URL
-                    value: "postgresql://postgres:devpassword@postgres:5432/journalist"
+                  - name: POSTGRES_USER
+                    valueFrom:
+                        secretKeyRef:
+                            name: postgres-credentials
+                            key: POSTGRES_USER
+                  - name: POSTGRES_PASSWORD
+                    valueFrom:
+                        secretKeyRef:
+                            name: postgres-credentials
+                            key: POSTGRES_PASSWORD
+                  - name: POSTGRES_DB
+                    valueFrom:
+                        secretKeyRef:
+                            name: postgres-credentials
+                            key: POSTGRES_DB
