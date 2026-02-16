@@ -1,4 +1,4 @@
-.PHONY: help build load deploy restart logs clean dev setup port-forward status kill-ports init check-cluster
+.PHONY: help build load deploy restart logs clean dev dev-local dev-frontend dev-backend setup port-forward status kill-ports init check-cluster
 
 # Variables
 CLUSTER_NAME = journalist
@@ -74,6 +74,30 @@ dev: check-cluster clean-images build load deploy
 	@echo ""
 	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
 	@echo "Backend:  http://localhost:$(BACKEND_PORT)"
+
+## dev-local: Run frontend and backend locally with live reload (recommended for development)
+dev-local: kill-ports
+	@echo "🚀 Starting local development with live reload..."
+	@echo ""
+	@echo "Frontend will be available at: http://localhost:$(FRONTEND_PORT)"
+	@echo "Backend will be available at: http://localhost:$(BACKEND_PORT)"
+	@echo ""
+	@echo "Press Ctrl+C to stop both servers"
+	@echo ""
+	@(trap 'kill %1 %2 2>/dev/null || true' INT; \
+		cd backend && uvicorn main:app --reload --port $(BACKEND_PORT) & \
+		cd frontend && npm run dev & \
+		wait)
+
+## dev-frontend: Run only frontend locally with live reload
+dev-frontend: kill-ports
+	@echo "🚀 Starting frontend development server..."
+	@cd frontend && npm run dev
+
+## dev-backend: Run only backend locally with live reload
+dev-backend: kill-ports
+	@echo "🚀 Starting backend development server..."
+	@cd backend && uvicorn main:app --reload --port $(BACKEND_PORT)
 
 ## check-cluster: Internal - verify cluster exists
 check-cluster:
