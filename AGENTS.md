@@ -151,11 +151,25 @@ pip install -r requirements.txt   # Install dependencies
 uvicorn main:app --reload --port 8001   # Start dev server
 ```
 
-### Full Stack (Docker/Kubernetes)
+### Development (Recommended)
+
+**`make dev`** - Runs infrastructure in Docker/K8s + apps locally with live reload:
+- Deploys PostgreSQL to Kind cluster via Helm
+- Port-forwards postgres to localhost:5432
+- Starts backend locally with auto-reload (uvicorn)
+- Starts frontend locally with hot reload (Next.js)
+- Single Ctrl+C stops everything
 
 ```bash
-make init            # First-time setup (creates cluster + deploys)
-make dev             # Build, load images, and deploy
+make dev             # Full dev environment (infra in Docker, apps local)
+make dev-frontend    # Frontend only (local)
+make dev-backend     # Backend only (local)
+```
+
+### Full Stack in Kubernetes (Production-like)
+
+```bash
+make init            # First-time setup (creates cluster + deploys everything)
 make port-forward    # Forward ports to localhost
 make logs            # View backend logs
 make logs-frontend   # View frontend logs

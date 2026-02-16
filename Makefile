@@ -1,4 +1,4 @@
-.PHONY: help build load deploy restart logs clean dev dev-local dev-frontend dev-backend setup port-forward status kill-ports init check-cluster
+.PHONY: help build load deploy restart logs clean dev dev-frontend dev-backend setup port-forward status kill-ports init check-cluster
 
 # Variables
 CLUSTER_NAME = journalist
@@ -65,28 +65,35 @@ deploy: check-cluster
 	helm upgrade --install $(HELM_RELEASE) ./journalist
 	@echo "✓ Deployed"
 
-## dev: Full development deploy (build + load + deploy)
-dev: check-cluster clean-images build load deploy
-	@echo "✓ Development environment ready!"
+## dev: Full development with infrastructure in Docker/K8s and apps locally with live reload
+dev: check-cluster kill-ports
+	@echo "🚀 Setting up development environment..."
 	@echo ""
-	@echo "Run 'make port-forward' to access the apps"
-	@echo "Run 'make logs' to view logs"
+	@echo "Step 1/3: Deploying infrastructure (PostgreSQL)..."
+	@helm upgrade --install $(HELM_RELEASE) ./journalist > /dev/null 2>&1
+	@echo "   ✓ Infrastructure deployed"
 	@echo ""
-	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
-	@echo "Backend:  http://localhost:$(BACKEND_PORT)"
-
-## dev-local: Run frontend and backend locally with live reload (recommended for development)
-dev-local: kill-ports
-	@echo "🚀 Starting local development with live reload..."
+	@echo "Step 2/3: Waiting for PostgreSQL to be ready..."
+	@kubectl wait --for=condition=ready pod/postgres-0 --timeout=60s 2>/dev/null || \
+		(echo "   ⏳ Waiting for postgres pod..." && sleep 5)
+	@echo "   ✓ PostgreSQL ready"
 	@echo ""
-	@echo "Frontend will be available at: http://localhost:$(FRONTEND_PORT)"
-	@echo "Backend will be available at: http://localhost:$(BACKEND_PORT)"
+	@echo "Step 3/3: Starting local frontend and backend with live reload..."
 	@echo ""
-	@echo "Press Ctrl+C to stop both servers"
+	@echo "═══════════════════════════════════════════════════════"
+	@echo "  📝 Journalist is running!"
 	@echo ""
-	@(trap 'kill %1 %2 2>/dev/null || true' INT; \
-		cd backend && uvicorn main:app --reload --port $(BACKEND_PORT) & \
-		cd frontend && npm run dev & \
+	@echo "  Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "  Backend:  http://localhost:$(BACKEND_PORT)"
+	@echo "  Postgres: localhost:5432"
+	@echo ""
+	@echo "  Press Ctrl+C to stop everything"
+	@echo "═══════════════════════════════════════════════════════"
+	@echo ""
+	@(trap 'echo "" && echo "🛑 Shutting down..." && kill %1 %2 %3 2>/dev/null || true' INT; \
+		kubectl port-forward postgres-0 5432:5432 > /dev/null 2>&1 & \
+		cd backend && POSTGRES_USER=postgres POSTGRES_PASSWORD=devpassword POSTGRES_DB=journalist DB_HOST=localhost uvicorn main:app --reload --port $(BACKEND_PORT) > /dev/null 2>&1 & \
+		cd frontend && npm run dev > /dev/null 2>&1 & \
 		wait)
 
 ## dev-frontend: Run only frontend locally with live reload
