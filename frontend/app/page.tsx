@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Calendar, BarChart3 } from 'lucide-react'
-import "./globals.css";
 
 export default function LandingPage() {
   return (
