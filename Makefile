@@ -35,13 +35,22 @@ setup:
 		echo "✓ Cluster created"; \
 	fi
 
-## build: Build Docker images for backend and frontend
 build:
 	@echo "Building backend..."
 	docker build -t $(BACKEND_IMAGE) ./backend
 	@echo "Building frontend..."
-	docker build -t $(FRONTEND_IMAGE) ./frontend
+	docker build --build-arg CACHEBUST=$$(date +%s) -t $(FRONTEND_IMAGE) ./frontend
 	@echo "✓ Images built"
+
+## clean-images: Remove old Docker images from Kind and local
+clean-images:
+	@echo "Removing old images from Kind..."
+	@docker exec $(CLUSTER_NAME)-control-plane crictl rmi $(BACKEND_IMAGE) 2>/dev/null || true
+	@docker exec $(CLUSTER_NAME)-control-plane crictl rmi $(FRONTEND_IMAGE) 2>/dev/null || true
+	@echo "Removing old images from Docker..."
+	@docker rmi $(BACKEND_IMAGE) 2>/dev/null || true
+	@docker rmi $(FRONTEND_IMAGE) 2>/dev/null || true
+	@echo "✓ Old images removed"
 
 ## load: Load Docker images into Kind cluster
 load: check-cluster
@@ -57,11 +66,14 @@ deploy: check-cluster
 	@echo "✓ Deployed"
 
 ## dev: Full development deploy (build + load + deploy)
-dev: check-cluster build load deploy
+dev: check-cluster clean-images build load deploy
 	@echo "✓ Development environment ready!"
 	@echo ""
 	@echo "Run 'make port-forward' to access the apps"
 	@echo "Run 'make logs' to view logs"
+	@echo ""
+	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "Backend:  http://localhost:$(BACKEND_PORT)"
 
 ## check-cluster: Internal - verify cluster exists
 check-cluster:
@@ -159,6 +171,10 @@ rebuild-backend:
 
 ## rebuild-frontend: Rebuild and redeploy frontend only
 rebuild-frontend:
+	@echo "Removing old frontend image..."
+	@docker exec $(CLUSTER_NAME)-control-plane crictl rmi $(FRONTEND_IMAGE) 2>/dev/null || true
+	@docker rmi $(FRONTEND_IMAGE) 2>/dev/null || true
+	@echo "Building frontend..."
 	docker build -t $(FRONTEND_IMAGE) ./frontend
 	kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
 	kubectl delete pod -l app=frontend

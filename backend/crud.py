@@ -1,9 +1,38 @@
 from sqlalchemy.orm import Session
 import models, schemas
-from typing import List, Optional
+from typing import List
+
+def get_or_create_focus_point(db: Session, name: str) -> models.FocusPoint:
+    """Get existing focus point or create new one"""
+    name = name.strip().lower()
+    focus_point = db.query(models.FocusPoint).filter(
+        models.FocusPoint.name == name
+    ).first()
+    
+    if not focus_point:
+        focus_point = models.FocusPoint(name=name)
+        db.add(focus_point)
+        db.commit()
+        db.refresh(focus_point)
+    
+    return focus_point
+
+def get_all_focus_points(db: Session) -> List[models.FocusPoint]:
+    """Get all focus points"""
+    return db.query(models.FocusPoint).order_by(models.FocusPoint.name).all()
 
 def create_entry(db: Session, entry: schemas.JournalEntryCreate):
-    db_entry = models.JournalEntry(**entry.dict())
+    # Create the entry
+    db_entry = models.JournalEntry(
+        title=entry.title,
+        content=entry.content
+    )
+    
+    # Add focus points
+    for focus_name in entry.focus_point_names:
+        focus_point = get_or_create_focus_point(db, focus_name)
+        db_entry.focus_points.append(focus_point)
+    
     db.add(db_entry)
     db.commit()
     db.refresh(db_entry)
@@ -22,8 +51,15 @@ def get_entry(db: Session, entry_id: int):
 def update_entry(db: Session, entry_id: int, entry: schemas.JournalEntryUpdate):
     db_entry = get_entry(db, entry_id)
     if db_entry:
-        for key, value in entry.dict().items():
-            setattr(db_entry, key, value)
+        db_entry.title = entry.title
+        db_entry.content = entry.content
+        
+        # Update focus points
+        db_entry.focus_points.clear()
+        for focus_name in entry.focus_point_names:
+            focus_point = get_or_create_focus_point(db, focus_name)
+            db_entry.focus_points.append(focus_point)
+        
         db.commit()
         db.refresh(db_entry)
     return db_entry

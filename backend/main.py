@@ -1,28 +1,31 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import crud, schemas, models
-from database import get_db
+from database import engine, get_db
 
 from fastapi.middleware.cors import CORSMiddleware
 
 # Create tables if they don't exist
-models.Base.metadata.create_all(bind=get_db().__next__().bind)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Journalist API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001"],  # your frontend port
+    allow_origins=["http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/focus-points/", response_model=list[schemas.FocusPoint])
+def get_focus_points(db: Session = Depends(get_db)):
+    """Get all focus points"""
+    return crud.get_all_focus_points(db)
 
 @app.post("/entries/", response_model=schemas.JournalEntry)
 def create_entry(entry: schemas.JournalEntryCreate, db: Session = Depends(get_db)):
