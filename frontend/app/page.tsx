@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 import { BookOpen, Calendar, BarChart3 } from 'lucide-react'
+import "./globals.css";
 
 export default function LandingPage() {
   return (
@@ -14,7 +14,6 @@ export default function LandingPage() {
             <span className="text-xl font-bold">Journalist</span>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeSwitcher />
             <Link href="/sign-in">
               <Button variant="ghost">Log in</Button>
             </Link>
@@ -30,7 +29,7 @@ export default function LandingPage() {
         <h1 className="text-5xl font-bold mb-6">Clarity, finally.</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
           A simple, beautiful journaling app that helps you capture thoughts,
-          track your progress, and stay organized.
+          track your progress, and stay organized with focus points.
         </p>
         <Link href="/sign-up">
           <Button size="lg" className="text-lg px-8">
@@ -54,7 +53,7 @@ export default function LandingPage() {
             </h3>
             <p className="text-muted-foreground">
               Write journal entries quickly with a clean, distraction-free
-              editor. Auto-save keeps your thoughts safe.
+              editor. Organize with focus points.
             </p>
           </div>
           <div className="text-center">
@@ -63,7 +62,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Track your journey</h3>
             <p className="text-muted-foreground">
-              Visualize your journaling habit with a beautiful activity heatmap.
+              Visualize your journaling habit with date grouping.
               See your progress over time.
             </p>
           </div>
@@ -73,7 +72,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Stay organized</h3>
             <p className="text-muted-foreground">
-              Tag your entries, filter by date, and find what matters. Your
+              Tag entries with focus points, filter by date, and find what matters. Your
               thoughts, beautifully organized.
             </p>
           </div>
@@ -97,7 +96,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Built with Next.js, TanStack Query, and shadcn/ui</p>
+          <p>Built with Next.js, FastAPI, and Kubernetes</p>
         </div>
       </footer>
     </div>
