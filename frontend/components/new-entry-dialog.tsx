@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { TagCombobox } from "@/components/tag-combobox"
-import { createEntry } from "@/lib/api"
+import { useApi } from "@/lib/api"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -39,6 +39,7 @@ interface NewEntryDialogProps {
 
 export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialogProps) {
     const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const api = useApi()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -52,7 +53,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
         try {
-            await createEntry(values)
+            await api.createEntry(values)
             form.reset()
             onOpenChange(false)
             onSuccess()

@@ -48,9 +48,9 @@ export function EntryList({ entries = [], onSelectEntry, selectedEntryId }: Entr
         const truncatedTitle = entry.title.length > 60 
           ? entry.title.slice(0, 60) + '...' 
           : entry.title;
-        const truncatedBody = entry.body.length > 100 
-          ? entry.body.slice(0, 100) + '...' 
-          : entry.body;
+        const truncatedContent = entry.content.length > 100 
+          ? entry.content.slice(0, 100) + '...' 
+          : entry.content;
 
         return (
           <Card
@@ -69,16 +69,16 @@ export function EntryList({ entries = [], onSelectEntry, selectedEntryId }: Entr
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-muted-foreground text-sm line-clamp-2">
-                {truncatedBody}
+                {truncatedContent}
               </p>
-              {entry.tags.length > 0 && (
+              {entry.focus_points.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {entry.tags.map((tag) => (
+                  {entry.focus_points.map((focusPoint) => (
                     <span
-                      key={tag}
+                      key={focusPoint.id}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
                     >
-                      {tag}
+                      {focusPoint.name}
                     </span>
                   ))}
                 </div>

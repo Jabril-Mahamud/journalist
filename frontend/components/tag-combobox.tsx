@@ -12,7 +12,7 @@ import {
     CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { getFocusPoints, FocusPoint } from "@/lib/api";
+import { useApi, FocusPoint } from "@/lib/api";
 
 interface TagComboboxProps {
     value: string[];
@@ -30,6 +30,7 @@ export function TagCombobox({
         FocusPoint[]
     >([]);
     const [loading, setLoading] = React.useState(true);
+    const api = useApi();
 
     React.useEffect(() => {
         loadFocusPoints();
@@ -37,7 +38,7 @@ export function TagCombobox({
 
     const loadFocusPoints = async () => {
         try {
-            const points = await getFocusPoints();
+            const points = await api.getFocusPoints();
             setExistingFocusPoints(points);
         } catch (error) {
             console.error("Error loading focus points:", error);
@@ -122,7 +123,7 @@ export function TagCombobox({
                                 className="text-primary"
                             >
                                 <Check className="mr-2 h-4 w-4 opacity-0" />
-                                Create "{inputValue}"
+                                Create &ldquo;{inputValue}&rdquo;
                             </CommandItem>
                         </CommandGroup>
                     )}

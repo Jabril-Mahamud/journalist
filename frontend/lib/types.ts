@@ -1,12 +1,26 @@
+export interface FocusPoint {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
 export interface JournalEntry {
   id: number;
   title: string;
-  body: string;
-  tags: string[];
+  content: string;
+  focus_points: FocusPoint[];
   created_at: string;
   updated_at: string;
 }
 
-export type CreateEntryInput = Omit<JournalEntry, 'id' | 'created_at' | 'updated_at'>;
+export interface CreateEntryInput {
+  title: string;
+  content: string;
+  focus_point_names: string[];
+}
 
-export type UpdateEntryInput = Partial<Omit<JournalEntry, 'id' | 'created_at' | 'updated_at'>>;
+export interface UpdateEntryInput {
+  title: string;
+  content: string;
+  focus_point_names: string[];
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getEntries, JournalEntry } from '@/lib/api';
+import { useApi, JournalEntry } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { AppSidebar } from '@/components/app-sidebar';
 import { NewEntryDialog } from '@/components/new-entry-dialog';
@@ -13,6 +13,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const api = useApi();
 
   useEffect(() => {
     loadEntries();
@@ -20,7 +21,7 @@ export default function Home() {
 
   const loadEntries = async () => {
     try {
-      const data = await getEntries();
+      const data = await api.getEntries();
       setEntries(data);
     } catch (error) {
       console.error('Error loading entries:', error);

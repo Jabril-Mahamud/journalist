@@ -5,29 +5,25 @@ import {
   UseQueryResult,
   UseMutationResult,
 } from '@tanstack/react-query';
-import {
-  fetchEntries,
-  fetchEntry,
-  createEntry,
-  updateEntry,
-  deleteEntry,
-} from '../api';
-import { JournalEntry, CreateEntryInput, UpdateEntryInput } from '../types';
+import { useApi } from '../api';
+import { JournalEntry, CreateEntryInput, UpdateEntryInput } from '../api';
 
 export function useEntries(
   skip = 0,
   limit = 50
 ): UseQueryResult<JournalEntry[], Error> {
+  const api = useApi();
   return useQuery<JournalEntry[], Error>({
     queryKey: ['entries', { skip, limit }],
-    queryFn: () => fetchEntries(skip, limit),
+    queryFn: () => api.getEntries(),
   });
 }
 
 export function useEntry(id: number): UseQueryResult<JournalEntry, Error> {
+  const api = useApi();
   return useQuery<JournalEntry, Error>({
     queryKey: ['entry', id],
-    queryFn: () => fetchEntry(id),
+    queryFn: () => api.getEntry(id),
     enabled: id > 0,
   });
 }
@@ -38,10 +34,11 @@ export function useCreateEntry(): UseMutationResult<
   CreateEntryInput,
   unknown
 > {
+  const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation<JournalEntry, Error, CreateEntryInput>({
-    mutationFn: createEntry,
+    mutationFn: (data) => api.createEntry(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
@@ -54,10 +51,11 @@ export function useUpdateEntry(): UseMutationResult<
   { id: number; data: UpdateEntryInput },
   unknown
 > {
+  const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation<JournalEntry, Error, { id: number; data: UpdateEntryInput }>({
-    mutationFn: ({ id, data }) => updateEntry(id, data),
+    mutationFn: ({ id, data }) => api.updateEntry(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
@@ -70,10 +68,11 @@ export function useDeleteEntry(): UseMutationResult<
   number,
   unknown
 > {
+  const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, number>({
-    mutationFn: deleteEntry,
+    mutationFn: (id) => api.deleteEntry(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },

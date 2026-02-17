@@ -23,8 +23,8 @@ interface EntryEditorProps {
 
 type FormData = {
   title: string;
-  body: string;
-  tags: string;
+  content: string;
+  focus_points: string;
 };
 
 const AUTOSAVE_DELAY = 2000;
@@ -51,8 +51,8 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
   } = useForm<FormData>({
     defaultValues: {
       title: '',
-      body: '',
-      tags: '',
+      content: '',
+      focus_points: '',
     },
   });
 
@@ -61,8 +61,8 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
     if (entryId && entry) {
       reset({
         title: entry.title,
-        body: entry.body,
-        tags: entry.tags.join(', '),
+        content: entry.content,
+        focus_points: entry.focus_points.map(fp => fp.name).join(', '),
       });
       setCurrentEntryId(entry.id);
       setSaveStatus('saved');
@@ -70,8 +70,8 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
     } else if (!entryId) {
       reset({
         title: '',
-        body: '',
-        tags: '',
+        content: '',
+        focus_points: '',
       });
       setCurrentEntryId(null);
       setSaveStatus('editing');
@@ -79,19 +79,19 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
     }
   }, [entryId, entry, reset]);
 
-  const parseTags = (tagsString: string): string[] => {
-    return tagsString
+  const parseFocusPoints = (focusPointsString: string): string[] => {
+    return focusPointsString
       .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+      .map((fp) => fp.trim())
+      .filter((fp) => fp.length > 0);
   };
 
   const performSave = useCallback(
     async (data: FormData) => {
       const entryData: CreateEntryInput = {
         title: data.title,
-        body: data.body,
-        tags: parseTags(data.tags),
+        content: data.content,
+        focus_point_names: parseFocusPoints(data.focus_points),
       };
 
       setSaveStatus('saving');
@@ -136,7 +136,7 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
       }
 
       autoSaveTimeoutRef.current = setTimeout(() => {
-        if (value.title || value.body) {
+        if (value.title || value.content) {
           handleSubmit((data) => performSave(data))();
         }
       }, AUTOSAVE_DELAY);
@@ -167,8 +167,8 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
   const handleNewEntry = () => {
     reset({
       title: '',
-      body: '',
-      tags: '',
+      content: '',
+      focus_points: '',
     });
     setCurrentEntryId(null);
     setSaveStatus('editing');
@@ -242,10 +242,10 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="body">Content</Label>
+          <Label htmlFor="content">Content</Label>
           <Textarea
-            id="body"
-            {...register('body')}
+            id="content"
+            {...register('content')}
             placeholder="Write your thoughts..."
             rows={10}
             className="resize-none border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -253,15 +253,15 @@ export function EntryEditor({ entryId, onSave, onDelete }: EntryEditorProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tags">Tags</Label>
+          <Label htmlFor="focus_points">Focus Points</Label>
           <Input
-            id="tags"
-            {...register('tags')}
+            id="focus_points"
+            {...register('focus_points')}
             placeholder="personal, work, ideas..."
             className="border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <p className="text-xs text-muted-foreground">
-            Separate tags with commas
+            Separate focus points with commas
           </p>
         </div>
       </form>

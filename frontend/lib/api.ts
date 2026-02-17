@@ -1,3 +1,7 @@
+'use client';
+
+import { useAuth } from '@clerk/nextjs';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 export interface FocusPoint {
@@ -21,48 +25,86 @@ export interface CreateEntryInput {
     focus_point_names: string[];
 }
 
-export async function getFocusPoints(): Promise<FocusPoint[]> {
-    const res = await fetch(`${API_URL}/focus-points/`);
-    if (!res.ok) throw new Error('Failed to fetch focus points');
-    return res.json();
+export interface UpdateEntryInput {
+    title: string;
+    content: string;
+    focus_point_names: string[];
 }
 
-export async function getEntries(): Promise<JournalEntry[]> {
-    const res = await fetch(`${API_URL}/entries/`);
-    if (!res.ok) throw new Error('Failed to fetch entries');
-    return res.json();
-}
+export function useApi() {
+    const { getToken } = useAuth();
 
-export async function getEntry(id: number): Promise<JournalEntry> {
-    const res = await fetch(`${API_URL}/entries/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch entry');
-    return res.json();
-}
+    async function fetchWithAuth(url: string, options: RequestInit = {}) {
+        const token = await getToken();
+        
+        if (!token) {
+            throw new Error('Not authenticated');
+        }
 
-export async function createEntry(entry: CreateEntryInput) {
-    const res = await fetch(`${API_URL}/entries/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry),
-    });
-    if (!res.ok) throw new Error('Failed to create entry');
-    return res.json();
-}
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers,
+        };
 
-export async function updateEntry(id: number, entry: CreateEntryInput) {
-    const res = await fetch(`${API_URL}/entries/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry),
-    });
-    if (!res.ok) throw new Error('Failed to update entry');
-    return res.json();
-}
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
 
-export async function deleteEntry(id: number) {
-    const res = await fetch(`${API_URL}/entries/${id}`, {
-        method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete entry');
-    return res.json();
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized - please sign in again');
+            }
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        return response;
+    }
+
+    async function getEntries(): Promise<JournalEntry[]> {
+        const res = await fetchWithAuth(`${API_URL}/entries/`);
+        return res.json();
+    }
+
+    async function getEntry(id: number): Promise<JournalEntry> {
+        const res = await fetchWithAuth(`${API_URL}/entries/${id}`);
+        return res.json();
+    }
+
+    async function createEntry(entry: CreateEntryInput): Promise<JournalEntry> {
+        const res = await fetchWithAuth(`${API_URL}/entries/`, {
+            method: 'POST',
+            body: JSON.stringify(entry),
+        });
+        return res.json();
+    }
+
+    async function updateEntry(id: number, entry: UpdateEntryInput): Promise<JournalEntry> {
+        const res = await fetchWithAuth(`${API_URL}/entries/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(entry),
+        });
+        return res.json();
+    }
+
+    async function deleteEntry(id: number): Promise<void> {
+        await fetchWithAuth(`${API_URL}/entries/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async function getFocusPoints(): Promise<FocusPoint[]> {
+        const res = await fetchWithAuth(`${API_URL}/focus-points/`);
+        return res.json();
+    }
+
+    return {
+        getEntries,
+        getEntry,
+        createEntry,
+        updateEntry,
+        deleteEntry,
+        getFocusPoints,
+    };
 }

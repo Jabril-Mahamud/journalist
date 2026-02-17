@@ -2,6 +2,17 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 
+class UserBase(BaseModel):
+    clerk_user_id: str
+    email: Optional[str] = None
+
+class User(UserBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 class FocusPointBase(BaseModel):
     name: str
 
