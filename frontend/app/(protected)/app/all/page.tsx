@@ -78,6 +78,7 @@ export default function AllEntriesPage() {
   useEffect(() => {
     loadEntries()
     loadFocusPoints()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

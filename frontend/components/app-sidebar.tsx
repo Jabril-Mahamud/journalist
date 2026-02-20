@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LayoutGrid, Sun, Moon, LogOut, User } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -127,10 +128,12 @@ export function AppSidebar({
                             )}
                         >
                             {user.imageUrl ? (
-                                <img
+                                <Image
                                     src={user.imageUrl}
                                     alt={user.firstName || "User"}
-                                    className="h-8 w-8 rounded-full"
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full"
                                 />
                             ) : (
                                 <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
