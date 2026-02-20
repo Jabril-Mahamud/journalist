@@ -48,7 +48,9 @@ dev:
 	@$(MAKE) --no-print-directory _helm-deploy
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
-	@echo "✅ Ready at http://localhost:$(FRONTEND_PORT)"
+	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "✅ Backend:  http://localhost:$(BACKEND_PORT)"
+	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
 ## stop: Stop everything

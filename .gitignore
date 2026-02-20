@@ -1,3 +1,4 @@
 .env.local
 backend/.env*
 frontend/.env*
+journalist/values.secret.yaml
