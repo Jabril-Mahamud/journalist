@@ -1,16 +1,25 @@
 import os
-from sqlalchemy import create_engine
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import sessionmaker
 
-DB_USER = os.getenv("POSTGRES_USER")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-DB_NAME = os.getenv("POSTGRES_DB")
-DB_HOST = os.getenv("DB_HOST", "postgres")  # Use the postgres service name in K8s
+load_dotenv()
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    DATABASE_URL = URL.create(
+        drivername="postgresql",
+        username=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),  # SQLAlchemy handles special chars
+        host=os.getenv("DB_HOST", "postgres"),
+        port=5432,
+        database=os.getenv("POSTGRES_DB"),
+    )
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def get_db():
     db = SessionLocal()
