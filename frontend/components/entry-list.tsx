@@ -2,31 +2,12 @@
 
 import { JournalEntry } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatDate } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 
 interface EntryListProps {
   entries?: JournalEntry[];
   onSelectEntry?: (id: number) => void;
   selectedEntryId?: number | null;
-}
-
-function EntrySkeleton() {
-  return (
-    <Card className="animate-pulse">
-      <CardHeader>
-        <div className="h-5 w-3/4 bg-muted rounded" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="h-4 w-full bg-muted rounded" />
-        <div className="h-4 w-2/3 bg-muted rounded" />
-        <div className="flex gap-2 pt-2">
-          <div className="h-6 w-16 bg-muted rounded-full" />
-          <div className="h-6 w-20 bg-muted rounded-full" />
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 export function EntryList({ entries = [], onSelectEntry, selectedEntryId }: EntryListProps) {

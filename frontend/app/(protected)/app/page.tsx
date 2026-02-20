@@ -61,6 +61,7 @@ export default function Home() {
 
   useEffect(() => {
     loadEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadEntries = async () => {

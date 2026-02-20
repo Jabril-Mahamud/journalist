@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { TagCombobox } from "@/components/tag-combobox"
 import { useApi, JournalEntry } from "@/lib/api"
-import { Pencil, Trash2, X } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),

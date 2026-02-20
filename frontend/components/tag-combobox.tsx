@@ -34,6 +34,7 @@ export function TagCombobox({
 
     React.useEffect(() => {
         loadFocusPoints();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const loadFocusPoints = async () => {
