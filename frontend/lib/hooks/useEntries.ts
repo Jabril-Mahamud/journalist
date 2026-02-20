@@ -6,7 +6,7 @@ import {
   UseMutationResult,
 } from '@tanstack/react-query';
 import { useApi } from '../api';
-import { JournalEntry, CreateEntryInput, UpdateEntryInput } from '../api';
+import { JournalEntry, CreateEntryInput, UpdateEntryInput, FocusPoint } from '../api';
 
 export function useEntries(
   skip = 0,
@@ -75,6 +75,32 @@ export function useDeleteEntry(): UseMutationResult<
     mutationFn: (id) => api.deleteEntry(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
+    },
+  });
+}
+
+export function useFocusPoints(): UseQueryResult<FocusPoint[], Error> {
+  const api = useApi();
+  return useQuery<FocusPoint[], Error>({
+    queryKey: ['focusPoints'],
+    queryFn: () => api.getFocusPoints(),
+  });
+}
+
+export function useDeleteFocusPoint(): UseMutationResult<
+  void,
+  Error,
+  number,
+  unknown
+> {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: (id) => api.deleteFocusPoint(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['focusPoints'] });
     },
   });
 }

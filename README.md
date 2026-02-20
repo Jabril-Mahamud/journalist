@@ -21,7 +21,7 @@ If you finish this project end-to-end, you will **genuinely understand Kubernete
 * **Frontend:** Next.js (Node 20+)
 * **Backend:** FastAPI (Python 3.11)
 * **Database:** PostgreSQL 15
-* **Auth:** Clerk or SuperTokens (planned)
+* **Auth:** Clerk
 * **Future Integration:** Todoist API
 
 ### Infrastructure
@@ -102,15 +102,17 @@ This single command will:
 
 ### Access Your Application
 
+After `make init`, your app is automatically accessible at:
+
+* **Frontend:** http://localhost:3001
+* **Backend API:** http://localhost:8001
+* **Backend Health:** http://localhost:8001/health
+
+If port forwarding stopped, run:
+
 ```bash
-make port-forward
+make ports
 ```
-
-Then visit:
-
-* **Frontend:** <http://localhost:3001>
-* **Backend API:** <http://localhost:8001>
-* **Backend Health:** <http://localhost:8001/health>
 
 ---
 
@@ -125,17 +127,14 @@ make help
 # Check status of your deployment
 make status
 
-# View logs from all pods
-make logs
-
-# View logs from specific service
-make logs-frontend
-make logs-backend
-make logs-postgres
+# View logs
+make logs       # Backend logs
+make logs-fe    # Frontend logs
+make logs-db    # Database logs
 
 # Rebuild and redeploy after code changes
-make rebuild-backend    # Backend only
-make rebuild-frontend   # Frontend only
+make update-backend    # Backend only
+make update-frontend   # Frontend only
 ```
 
 ### Making Code Changes
@@ -143,40 +142,23 @@ make rebuild-frontend   # Frontend only
 **For Backend changes:**
 
 1. Edit code in `backend/`
-2. Run `make rebuild-backend`
+2. Run `make update-backend`
 3. Changes are live!
 
 **For Frontend changes:**
 
 1. Edit code in `frontend/`
-2. Run `make rebuild-frontend`
+2. Run `make update-frontend`
 3. Refresh browser
 
 **For Helm template changes:**
 
 1. Edit templates in `journalist/templates/`
-2. Run `make deploy`
-
-### Full Rebuild
-
-If you want to rebuild everything from scratch:
-
-```bash
-make dev
-```
+2. Run `make dev`
 
 ### Debugging
 
 ```bash
-# Open shell in backend container
-make shell-backend
-
-# Open shell in frontend container
-make shell-frontend
-
-# Connect to PostgreSQL
-make shell-postgres
-
 # View detailed pod information
 kubectl describe pod <pod-name>
 
@@ -192,26 +174,17 @@ kubectl get all
 |---------|-------------|
 | `make help` | Show all available commands |
 | `make init` | **First-time setup** - create cluster + deploy everything |
-| `make setup` | Create Kind cluster |
-| `make build` | Build Docker images |
-| `make load` | Load images into Kind |
-| `make deploy` | Deploy with Helm |
-| `make dev` | Build + Load + Deploy (requires existing cluster) |
-| `make restart` | Restart all deployments |
-| `make port-forward` | Forward ports to localhost |
-| `make kill-ports` | Free up ports 3001 and 8001 |
+| `make dev` | Start dev environment (run this daily) |
+| `make stop` | Stop everything (cluster and data preserved) |
+| `make ports` | Restart port forwarding to localhost |
 | `make status` | Show status of all resources |
-| `make logs` | View logs from all pods |
-| `make logs-frontend` | View frontend logs only |
-| `make logs-backend` | View backend logs only |
-| `make logs-postgres` | View postgres logs only |
-| `make clean` | Remove deployment (keep cluster) |
-| `make destroy` | Destroy Kind cluster completely |
-| `make rebuild-backend` | Rebuild backend only |
-| `make rebuild-frontend` | Rebuild frontend only |
-| `make shell-backend` | Open shell in backend pod |
-| `make shell-frontend` | Open shell in frontend pod |
-| `make shell-postgres` | Open PostgreSQL shell |
+| `make logs` | View backend logs |
+| `make logs-fe` | View frontend logs |
+| `make logs-db` | View database logs |
+| `make update-backend` | Rebuild and deploy backend only |
+| `make update-frontend` | Rebuild and deploy frontend only |
+| `make clean` | Remove deployment (keeps cluster + data) |
+| `make destroy` | Delete Kind cluster completely (⚠️ deletes all data) |
 
 ---
 
@@ -222,13 +195,7 @@ kubectl get all
 If you see an error about the cluster not existing:
 
 ```bash
-# Create the cluster first
-make setup
-
-# Then deploy
-make dev
-
-# Or do both at once
+# Create the cluster and deploy
 make init
 ```
 
@@ -237,11 +204,9 @@ make init
 If ports 3001 or 8001 are already in use:
 
 ```bash
-# Option 1: Free the ports
-make kill-ports
-
-# Option 2: Change the ports
-# Edit Makefile and change BACKEND_PORT and FRONTEND_PORT variables
+# Stop everything and restart
+make stop
+make dev
 ```
 
 ### ❌ Pods Not Starting
@@ -260,9 +225,9 @@ kubectl logs <pod-name>
 ### ❌ Image Not Found
 
 ```bash
-# Make sure images are built and loaded
-make build
-make load
+# Rebuild images
+make update-backend
+make update-frontend
 ```
 
 ### ❌ Frontend Crashing with Node.js Version Error
@@ -292,26 +257,21 @@ make init
 ### Starting Fresh Each Day
 
 ```bash
-# If cluster was destroyed
-make init
-make port-forward
-
-# If cluster exists
 make dev
-make port-forward
 ```
 
 ### Quick Iteration on Code
 
 ```bash
 # Backend changes
-make rebuild-backend
+make update-backend
 
 # Frontend changes  
-make rebuild-frontend
+make update-frontend
 
 # View logs to debug
-make logs-backend
+make logs
+make logs-fe
 ```
 
 ### Checking Everything is Running
@@ -322,17 +282,17 @@ make status
 # Should show:
 # - 3 pods running (backend, frontend, postgres)
 # - 3 services
-# - 1 helm release
+# - Port forwarding active
 ```
 
 ---
 
 ## Next Steps
 
-* [ ] Implement user authentication (Clerk/SuperTokens)
-* [ ] Create journal entry CRUD endpoints
-* [ ] Build frontend UI for journaling
-* [ ] Set up PostgreSQL schema and migrations
+* [x] Implement user authentication (Clerk)
+* [x] Create journal entry CRUD endpoints
+* [x] Build frontend UI for journaling
+* [x] Set up PostgreSQL schema and migrations
 * [ ] Integrate Todoist API
 * [ ] Add proper logging and monitoring
 * [ ] Set up CI/CD pipeline

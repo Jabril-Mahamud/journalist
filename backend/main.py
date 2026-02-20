@@ -32,6 +32,30 @@ def get_focus_points(
     """Get all focus points for the authenticated user"""
     return crud.get_all_focus_points(db, current_user.id)
 
+@app.post("/focus-points/", response_model=schemas.FocusPoint)
+def create_focus_point(
+    focus_point: schemas.FocusPointCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Create a new focus point for the authenticated user"""
+    return crud.get_or_create_focus_point(db, focus_point.name, current_user.id)
+
+@app.delete("/focus-points/{focus_point_id}", response_model=schemas.FocusPoint)
+def delete_focus_point(
+    focus_point_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Delete a focus point (only if owned by the authenticated user).
+    
+    This also removes the focus point from any entries it was attached to.
+    """
+    deleted = crud.delete_focus_point(db, focus_point_id, current_user.id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Focus point not found")
+    return deleted
+
 @app.post("/entries/", response_model=schemas.JournalEntry)
 def create_entry(
     entry: schemas.JournalEntryCreate,

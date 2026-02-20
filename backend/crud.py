@@ -24,6 +24,24 @@ def get_all_focus_points(db: Session, user_id: int) -> List[models.FocusPoint]:
         models.FocusPoint.user_id == user_id
     ).order_by(models.FocusPoint.name).all()
 
+def delete_focus_point(db: Session, focus_point_id: int, user_id: int):
+    """Delete a focus point (only if owned by the user).
+    
+    Removing a focus point automatically removes it from all entries
+    via the cascade on the many-to-many relationship.
+    """
+    from typing import Optional
+    focus_point = db.query(models.FocusPoint).filter(
+        models.FocusPoint.id == focus_point_id,
+        models.FocusPoint.user_id == user_id
+    ).first()
+    
+    if focus_point:
+        db.delete(focus_point)
+        db.commit()
+    
+    return focus_point
+
 def create_entry(db: Session, entry: schemas.JournalEntryCreate, user_id: int):
     """Create a new journal entry for a specific user"""
     # Create the entry

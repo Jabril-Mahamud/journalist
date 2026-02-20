@@ -99,6 +99,20 @@ export function useApi() {
         return res.json();
     }
 
+    async function createFocusPoint(name: string): Promise<FocusPoint> {
+        const res = await fetchWithAuth(`${API_URL}/focus-points/`, {
+            method: 'POST',
+            body: JSON.stringify({ name }),
+        });
+        return res.json();
+    }
+
+    async function deleteFocusPoint(id: number): Promise<void> {
+        await fetchWithAuth(`${API_URL}/focus-points/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     return {
         getEntries,
         getEntry,
@@ -106,5 +120,7 @@ export function useApi() {
         updateEntry,
         deleteEntry,
         getFocusPoints,
+        createFocusPoint,
+        deleteFocusPoint,
     };
 }
