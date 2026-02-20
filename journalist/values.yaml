@@ -9,8 +9,7 @@ frontend:
   port: 3001
 
 postgres:
-  image: postgres:15-alpine
-  storage: 1Gi
   user: postgres
-  password: devpassword
-  db: journalist
+  password: ""
+  db: postgres
+  host: db.igqnbnkvhpvdugajoltn.supabase.co

@@ -127,9 +127,10 @@ _load-images:
 
 _helm-deploy:
 	@echo "⚙️  Deploying..."
-	@helm upgrade --install journalist ./journalist --wait
+	@helm upgrade --install journalist ./journalist \
+		--values ./journalist/values.secret.yaml \
+		--wait
 	@echo "✓ Deployed"
-
 _port-forward:
 	@echo "🔌 Starting port forwarding..."
 	@chmod +x scripts/port-forward.sh
