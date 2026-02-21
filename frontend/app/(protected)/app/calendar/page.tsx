@@ -189,10 +189,7 @@ export default function CalendarPage() {
                          )}
                       </div>
                       <div className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(entry.created_at).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
+                        {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                       </div>
                     </div>
                   </div>
