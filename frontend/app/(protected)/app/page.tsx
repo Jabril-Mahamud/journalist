@@ -8,6 +8,7 @@ import { NewEntryDialog } from '@/components/new-entry-dialog';
 import { EntryDialog } from '@/components/entry-dialog';
 import { Plus, Calendar, Flame } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { getReadableTextColor } from '@/lib/utils';
 
 function formatHeaderDate(date: Date): string {
   const day = date.getDate();
@@ -201,17 +202,21 @@ export default function Home() {
                             {entry.content}
                           </p>
                           {entry.focus_points && entry.focus_points.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {entry.focus_points.map((focusPoint) => (
-                                <span
-                                  key={focusPoint.id}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground capitalize"
-                                >
-                                  {focusPoint.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                             <div className="flex flex-wrap gap-2">
+                               {entry.focus_points.map((focusPoint) => (
+                                 <span
+                                   key={focusPoint.id}
+                                   className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
+                                   style={{
+                                     backgroundColor: focusPoint.color,
+                                     color: getReadableTextColor(focusPoint.color),
+                                   }}
+                                 >
+                                   {focusPoint.name}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
                         </div>
                         <div className="text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(entry.created_at).toLocaleTimeString('en-US', {
