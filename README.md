@@ -13,7 +13,7 @@ The end goal is a **journaling app that syncs with Todoist**, so your daily refl
 | Frontend | Next.js 16 + React 19 + Tailwind CSS v4 + shadcn/ui |
 | Backend | FastAPI + SQLAlchemy 2.0 |
 | Database | PostgreSQL (Supabase in production) |
-| Auth | Clerk |
+| Auth | Clerk (JWT verified via JWKS) |
 | Local Infra | Kubernetes (Kind) + Helm + Docker |
 | Production | Fly.io |
 
@@ -55,7 +55,7 @@ This creates the Kind cluster, builds Docker images, loads them into the cluster
 
 ### Environment variables
 
-Create `backend/.env`:
+Create `backend/.env` (see `backend/.env.example` for all required vars):
 
 ```env
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres
@@ -63,6 +63,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your-password
 POSTGRES_DB=postgres
 DB_HOST=localhost
+CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
+ALLOWED_ORIGINS=http://localhost:3001
 ```
 
 Create `frontend/.env.local`:
@@ -73,12 +75,50 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxx
 CLERK_SECRET_KEY=sk_test_xxxx
 ```
 
+### Secret Helm values
+
+Create `journalist/values.secret.yaml` (gitignored — never commit this):
+
+```bash
+cat > journalist/values.secret.yaml << 'EOF'
+postgres:
+  user: postgres
+  password: devpassword
+  db: journalist
+  host: postgres
+EOF
+```
+
+### Install git hooks
+
+Run once after cloning. Installs a pre-push hook that runs lint, type checking, backend syntax, and Helm lint before every push:
+
+```bash
+./scripts/install-hooks.sh
+```
+
+To bypass in an emergency:
+
+```bash
+git push --no-verify
+```
+
 ### Daily workflow
 
 ```bash
 make dev      # Build images + deploy (run this after any code change)
 make stop     # Stop everything at end of day
 ```
+
+### Smoke test
+
+Manually verify the backend starts and auth is working before pushing:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+Starts the backend, checks `/health` returns 200, and verifies forged tokens are rejected with 401.
 
 ### Other commands
 
@@ -100,8 +140,9 @@ journalist/
 │   ├── models.py            # SQLAlchemy models
 │   ├── schemas.py           # Pydantic schemas
 │   ├── crud.py              # Database operations
-│   ├── auth.py              # Clerk JWT verification
+│   ├── auth.py              # Clerk JWT verification (via JWKS)
 │   ├── database.py          # DB connection
+│   ├── .env.example         # Required env vars (copy to .env)
 │   └── Dockerfile
 ├── frontend/                 # Next.js frontend
 │   ├── app/                 # App router pages
@@ -110,12 +151,18 @@ journalist/
 │   └── Dockerfile
 ├── journalist/               # Helm chart
 │   ├── Chart.yaml
-│   ├── values.yaml
+│   ├── values.yaml          # Non-secret defaults
+│   ├── values.secret.yaml   # Secret overrides (gitignored — create locally)
 │   └── templates/
 │       ├── backend.yaml
 │       ├── frontend.yaml
 │       └── postgres.yaml
+├── .vscode/
+│   └── settings.json        # K8s YAML, indent-rainbow, and .git visibility config
 ├── scripts/
+│   ├── install-hooks.sh     # Run once after cloning to install git hooks
+│   ├── pre-push.sh          # Reference copy of the pre-push hook
+│   ├── smoke-test.sh        # Manual backend smoke test
 │   └── port-forward.sh
 └── Makefile
 ```
@@ -125,22 +172,60 @@ journalist/
 ## Deployment
 
 The app deploys to **Fly.io** (frontend + backend) with **Supabase** for the database.
+CI/CD runs via GitHub Actions on push to `main` — linting runs on every PR.
+
+### Fly secrets (backend)
 
 ```bash
-# Backend
 cd backend
-fly deploy
-
-# Frontend
-cd frontend
-fly deploy
+fly secrets set CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
+fly secrets set ALLOWED_ORIGINS=https://journalist-frontend.fly.dev
+fly secrets set DATABASE_URL=postgresql://...
 ```
 
-Secrets are managed with `fly secrets set`. See deployment docs for full setup.
+### Manual deploy
+
+```bash
+cd backend && fly deploy
+cd frontend && fly deploy
+```
+
+---
+
+## Authentication
+
+Auth is handled by [Clerk](https://clerk.com). JWTs from the frontend are verified on every request using Clerk's public JWKS endpoint — the backend never trusts unverified tokens.
+
+To find your JWKS URL: Clerk Dashboard → Configure → Domains → copy the domain and append `/.well-known/jwks.json`.
+
+---
+
+## VS Code
+
+The repo includes `.vscode/settings.json` with:
+
+- Kubernetes schema validation and autocomplete for `journalist/templates/`
+- 2-space YAML indentation with format on save
+- Tuned indent-rainbow colours for deeply nested YAML
+- `.git` folder visible in the explorer (but excluded from file search)
+
+Recommended extensions: **YAML** (Red Hat), **indent-rainbow**, **Kubernetes** (Microsoft).
 
 ---
 
 ## Troubleshooting
+
+**`values.secret.yaml` not found**
+
+```bash
+cat > journalist/values.secret.yaml << 'EOF'
+postgres:
+  user: postgres
+  password: devpassword
+  db: journalist
+  host: postgres
+EOF
+```
 
 **Cluster not found**
 
@@ -179,7 +264,14 @@ make destroy && make init
 - [x] All entries browser with search and filters
 - [x] Activity heatmap
 - [x] Deploy to Fly.io + Supabase
-- [ ] CI/CD pipeline
+- [x] CI/CD pipeline (GitHub Actions → Fly.io)
+- [x] JWT signature verification
+- [x] Pre-push hooks (lint, type check, helm lint, smoke test)
+- [x] CORS locked to production origin
+- [x] Input length validation (Pydantic)
+- [x] Rate limiting
+- [x] Markdown rendering in entries
+- [x] Tag colour picker
 - [ ] Todoist integration
 
 ---

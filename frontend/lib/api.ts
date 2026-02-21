@@ -7,6 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 export interface FocusPoint {
     id: number;
     name: string;
+    color: string;
     created_at: string;
 }
 
@@ -113,6 +114,14 @@ export function useApi() {
         });
     }
 
+    async function updateFocusPointColor(id: number, color: string): Promise<FocusPoint> {
+        const res = await fetchWithAuth(`${API_URL}/focus-points/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ color }),
+        });
+        return res.json();
+    }
+
     return {
         getEntries,
         getEntry,
@@ -122,5 +131,6 @@ export function useApi() {
         getFocusPoints,
         createFocusPoint,
         deleteFocusPoint,
+        updateFocusPointColor,
     };
 }

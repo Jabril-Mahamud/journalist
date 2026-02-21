@@ -8,6 +8,7 @@ import { NewEntryDialog } from '@/components/new-entry-dialog';
 import { EntryDialog } from '@/components/entry-dialog';
 import { Plus, Calendar, Flame } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { getReadableTextColor } from '@/lib/utils';
 
 function formatHeaderDate(date: Date): string {
   const day = date.getDate();
@@ -34,11 +35,25 @@ function calculateStreak(entries: JournalEntry[]): number {
     entries.map((e) => new Date(e.created_at).toDateString())
   );
 
-  let streak = 0;
   const today = new Date();
+  const todayStr = today.toDateString();
 
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toDateString();
+
+  let startDate: Date;
+  if (uniqueDays.has(todayStr)) {
+    startDate = today;
+  } else if (uniqueDays.has(yesterdayStr)) {
+    startDate = yesterday;
+  } else {
+    return 0;
+  }
+
+  let streak = 0;
   for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
+    const d = new Date(startDate);
     d.setDate(d.getDate() - i);
     if (uniqueDays.has(d.toDateString())) {
       streak++;
@@ -201,23 +216,24 @@ export default function Home() {
                             {entry.content}
                           </p>
                           {entry.focus_points && entry.focus_points.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {entry.focus_points.map((focusPoint) => (
-                                <span
-                                  key={focusPoint.id}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground capitalize"
-                                >
-                                  {focusPoint.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                             <div className="flex flex-wrap gap-2">
+                               {entry.focus_points.map((focusPoint) => (
+                                 <span
+                                   key={focusPoint.id}
+                                   className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
+                                   style={{
+                                     backgroundColor: focusPoint.color,
+                                     color: getReadableTextColor(focusPoint.color),
+                                   }}
+                                 >
+                                   {focusPoint.name}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
                         </div>
                         <div className="text-sm text-muted-foreground whitespace-nowrap">
-                          {new Date(entry.created_at).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
+                          {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </div>
                       </div>
                     </div>

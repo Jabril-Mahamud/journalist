@@ -1,19 +1,33 @@
-from fastapi import FastAPI, Depends, HTTPException
+import os
+from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 import crud, schemas, models
 from database import engine, get_db
 from auth import get_current_user
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+
+def get_rate_limit_key(request: Request) -> str:
+    auth_header = request.headers.get("Authorization", "")
+    return auth_header or get_remote_address(request)
+
+
+limiter = Limiter(key_func=get_rate_limit_key)
 
 # Create tables if they don't exist
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Journalist API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3001").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,7 +47,9 @@ def get_focus_points(
     return crud.get_all_focus_points(db, current_user.id)
 
 @app.post("/focus-points/", response_model=schemas.FocusPoint)
+@limiter.limit("60/minute")
 def create_focus_point(
+    request: Request,
     focus_point: schemas.FocusPointCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -42,7 +58,9 @@ def create_focus_point(
     return crud.get_or_create_focus_point(db, focus_point.name, current_user.id)
 
 @app.delete("/focus-points/{focus_point_id}", response_model=schemas.FocusPoint)
+@limiter.limit("60/minute")
 def delete_focus_point(
+    request: Request,
     focus_point_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -56,8 +74,23 @@ def delete_focus_point(
         raise HTTPException(status_code=404, detail="Focus point not found")
     return deleted
 
+@app.patch("/focus-points/{focus_point_id}", response_model=schemas.FocusPoint)
+def update_focus_point(
+    focus_point_id: int,
+    update_data: schemas.FocusPointUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update a focus point's color (only if owned by the authenticated user)."""
+    updated = crud.update_focus_point_color(db, focus_point_id, update_data.color, current_user.id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Focus point not found")
+    return updated
+
 @app.post("/entries/", response_model=schemas.JournalEntry)
+@limiter.limit("60/minute")
 def create_entry(
+    request: Request,
     entry: schemas.JournalEntryCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -88,7 +121,9 @@ def read_entry(
     return entry
 
 @app.put("/entries/{entry_id}", response_model=schemas.JournalEntry)
+@limiter.limit("60/minute")
 def update_entry(
+    request: Request,
     entry_id: int,
     entry: schemas.JournalEntryUpdate,
     db: Session = Depends(get_db),
@@ -101,7 +136,9 @@ def update_entry(
     return updated
 
 @app.delete("/entries/{entry_id}", response_model=schemas.JournalEntry)
+@limiter.limit("60/minute")
 def delete_entry(
+    request: Request,
     entry_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)

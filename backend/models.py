@@ -30,6 +30,7 @@ class FocusPoint(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False, index=True)
+    color = Column(String(7), nullable=False, default="#6366f1", server_default="#6366f1")
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
