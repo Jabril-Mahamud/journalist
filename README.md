@@ -112,13 +112,13 @@ make stop     # Stop everything at end of day
 
 ### Smoke test
 
-Manually verify the backend starts and auth is working before pushing:
+Manually verify the backend is working while `make dev` is running:
 
 ```bash
 ./scripts/smoke-test.sh
 ```
 
-Starts the backend, checks `/health` returns 200, and verifies forged tokens are rejected with 401.
+Checks `/health` returns 200, forged tokens return 401, and missing tokens return 403.
 
 ### Other commands
 
@@ -257,6 +257,8 @@ make destroy && make init
 
 ## Roadmap
 
+### Done
+
 - [x] User authentication (Clerk)
 - [x] Journal entry CRUD
 - [x] Focus points (tags)
@@ -272,7 +274,43 @@ make destroy && make init
 - [x] Rate limiting
 - [x] Markdown rendering in entries
 - [x] Tag colour picker
-- [ ] Todoist integration
+- [x] Streak counter
+- [x] Day/date on entry cards
+- [x] Adaptive activity heatmap with range selector
+- [x] New entry as modal
+- [x] Search by title and content
+
+### Up next
+
+**Security & reliability**
+
+- [ ] Drive all secrets from env vars (`.env.example` documenting every var)
+
+**Writing experience**
+
+- [ ] Entry templates (daily review, weekly review, monthly, yearly)
+- [ ] Writing prompts — surface a random prompt if new entry is idle for 5 seconds
+- [ ] Word count and reading time on entries
+- [ ] Draft autosave to localStorage if dialog is closed mid-write
+- [ ] Keyboard shortcuts — `N` for new entry, `Cmd+K` for search/jump
+
+**Revisiting entries**
+
+- [ ] On this day — show entries from the same date in previous years
+- [ ] Related entries — entries sharing focus points shown when viewing an entry
+
+**Insights**
+
+- [ ] Writing stats page — total entries, total words, most used tags, most productive day of week, average streak
+- [ ] Focus point breakdown — time distribution across tags over a period
+
+**Data ownership**
+
+- [ ] Export — download all entries as individual markdown files or a single JSON (most important missing feature for user trust)
+
+**Integrations**
+
+- [ ] Todoist integration — sync daily reflections and tasks into the same mental space
 
 ---
 
