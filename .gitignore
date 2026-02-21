@@ -4,3 +4,4 @@ frontend/.env*
 journalist/values.secret.yaml
 .vscode/settings.json
 AGENTS.md
+Agents.md
