@@ -8,7 +8,7 @@ from typing import Optional
 import models
 from database import get_db
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 JWKS_URL = os.getenv("CLERK_JWKS_URL")
 
@@ -39,9 +39,15 @@ def verify_clerk_token(token: str) -> dict:
         )
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> models.User:
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     token = credentials.credentials
 
     try:

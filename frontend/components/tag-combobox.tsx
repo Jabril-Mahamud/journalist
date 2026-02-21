@@ -144,6 +144,10 @@ export function TagCombobox({
                                             value.includes(point.name) ? "opacity-100" : "opacity-0",
                                         )}
                                     />
+                                    <span
+                                        className="w-2 h-2 rounded-full mr-2"
+                                        style={{ backgroundColor: point.color }}
+                                    />
                                     {point.name}
                                 </CommandItem>
                             ))}

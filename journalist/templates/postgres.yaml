@@ -28,7 +28,7 @@ spec:
                 image: postgres:15-alpine
                 env:
                   - name: POSTGRES_PASSWORD
-                    value: "devpassword"
+                    value: "devpassword"  # LOCAL DEV ONLY - do not use in production
                   - name: POSTGRES_DB
                     value: journalist
                 ports:

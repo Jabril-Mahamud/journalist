@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button"
 import { TagCombobox } from "@/components/tag-combobox"
 import { useApi, JournalEntry } from "@/lib/api"
 import { Pencil, Trash2 } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import { getReadableTextColor } from "@/lib/utils"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -234,15 +236,19 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                     </Form>
                 ) : (
                     <div className="space-y-4">
-                        <div className="text-base whitespace-pre-wrap">
-                            {entry.content}
+                        <div className="prose dark:prose-invert max-w-none">
+                            <ReactMarkdown>{entry.content}</ReactMarkdown>
                         </div>
                         {entry.focus_points && entry.focus_points.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-4">
                                 {entry.focus_points.map((focusPoint) => (
                                     <span
                                         key={focusPoint.id}
-                                        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground capitalize"
+                                        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
+                                        style={{
+                                            backgroundColor: focusPoint.color,
+                                            color: getReadableTextColor(focusPoint.color),
+                                        }}
                                     >
                                         {focusPoint.name}
                                     </span>
