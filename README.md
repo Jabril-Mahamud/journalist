@@ -79,12 +79,28 @@ CLERK_SECRET_KEY=sk_test_xxxx
 
 Create `journalist/values.secret.yaml` (gitignored — never commit this):
 
-```yaml
+```bash
+cat > journalist/values.secret.yaml << 'EOF'
 postgres:
   user: postgres
-  password: your-password
+  password: devpassword
   db: journalist
   host: postgres
+EOF
+```
+
+### Install git hooks
+
+Run once after cloning. Installs a pre-push hook that runs lint, type checking, backend syntax, and Helm lint before every push:
+
+```bash
+./scripts/install-hooks.sh
+```
+
+To bypass in an emergency:
+
+```bash
+git push --no-verify
 ```
 
 ### Daily workflow
@@ -93,6 +109,16 @@ postgres:
 make dev      # Build images + deploy (run this after any code change)
 make stop     # Stop everything at end of day
 ```
+
+### Smoke test
+
+Manually verify the backend starts and auth is working before pushing:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+Starts the backend, checks `/health` returns 200, and verifies forged tokens are rejected with 401.
 
 ### Other commands
 
@@ -132,8 +158,11 @@ journalist/
 │       ├── frontend.yaml
 │       └── postgres.yaml
 ├── .vscode/
-│   └── settings.json        # K8s YAML + indent-rainbow config
+│   └── settings.json        # K8s YAML, indent-rainbow, and .git visibility config
 ├── scripts/
+│   ├── install-hooks.sh     # Run once after cloning to install git hooks
+│   ├── pre-push.sh          # Reference copy of the pre-push hook
+│   ├── smoke-test.sh        # Manual backend smoke test
 │   └── port-forward.sh
 └── Makefile
 ```
@@ -157,10 +186,7 @@ fly secrets set DATABASE_URL=postgresql://...
 ### Manual deploy
 
 ```bash
-# Backend
 cd backend && fly deploy
-
-# Frontend
 cd frontend && fly deploy
 ```
 
@@ -171,6 +197,19 @@ cd frontend && fly deploy
 Auth is handled by [Clerk](https://clerk.com). JWTs from the frontend are verified on every request using Clerk's public JWKS endpoint — the backend never trusts unverified tokens.
 
 To find your JWKS URL: Clerk Dashboard → Configure → Domains → copy the domain and append `/.well-known/jwks.json`.
+
+---
+
+## VS Code
+
+The repo includes `.vscode/settings.json` with:
+
+- Kubernetes schema validation and autocomplete for `journalist/templates/`
+- 2-space YAML indentation with format on save
+- Tuned indent-rainbow colours for deeply nested YAML
+- `.git` folder visible in the explorer (but excluded from file search)
+
+Recommended extensions: **YAML** (Red Hat), **indent-rainbow**, **Kubernetes** (Microsoft).
 
 ---
 
@@ -227,6 +266,7 @@ make destroy && make init
 - [x] Deploy to Fly.io + Supabase
 - [x] CI/CD pipeline (GitHub Actions → Fly.io)
 - [x] JWT signature verification
+- [x] Pre-push hooks (lint, type check, helm lint, smoke test)
 - [x] CORS locked to production origin
 - [x] Input length validation (Pydantic)
 - [x] Rate limiting

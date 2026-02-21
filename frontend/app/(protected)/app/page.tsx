@@ -35,11 +35,25 @@ function calculateStreak(entries: JournalEntry[]): number {
     entries.map((e) => new Date(e.created_at).toDateString())
   );
 
-  let streak = 0;
   const today = new Date();
+  const todayStr = today.toDateString();
 
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toDateString();
+
+  let startDate: Date;
+  if (uniqueDays.has(todayStr)) {
+    startDate = today;
+  } else if (uniqueDays.has(yesterdayStr)) {
+    startDate = yesterday;
+  } else {
+    return 0;
+  }
+
+  let streak = 0;
   for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
+    const d = new Date(startDate);
     d.setDate(d.getDate() - i);
     if (uniqueDays.has(d.toDateString())) {
       streak++;
@@ -219,10 +233,7 @@ export default function Home() {
                            )}
                         </div>
                         <div className="text-sm text-muted-foreground whitespace-nowrap">
-                          {new Date(entry.created_at).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
+                          {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </div>
                       </div>
                     </div>

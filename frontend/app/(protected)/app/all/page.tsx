@@ -9,7 +9,7 @@ import { TagColorPicker } from '@/components/tag-color-picker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Calendar, X, Plus, Trash2, Tag } from 'lucide-react'
+import { Calendar, X, Plus, Trash2, Tag, Search } from 'lucide-react'
 import { getReadableTextColor } from '@/lib/utils'
 import { parse } from 'date-fns'
 
@@ -257,12 +257,31 @@ export default function AllEntriesPage() {
           <h1 className="text-4xl font-bold mb-6">All Entries</h1>
 
           <div className="space-y-4 mb-6">
-            <Input
-              placeholder="Search entries..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by title or content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {debouncedSearch && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {debouncedSearch && (
+              <p className="text-sm text-muted-foreground">
+                Searching title and content for &quot;{debouncedSearch}&quot;
+              </p>
+            )}
 
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex flex-wrap gap-2">
@@ -435,10 +454,7 @@ export default function AllEntriesPage() {
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground whitespace-nowrap">
-                          {new Date(entry.created_at).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
+                          {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </div>
                       </div>
                     </div>
