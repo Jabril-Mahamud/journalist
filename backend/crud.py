@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 import models, schemas
 from typing import List
 
-def get_or_create_focus_point(db: Session, name: str, user_id: int) -> models.FocusPoint:
+def get_or_create_focus_point(db: Session, name: str, user_id: int, color: str = "#6366f1") -> models.FocusPoint:
     """Get existing focus point for this user or create new one"""
     name = name.strip().lower()
     focus_point = db.query(models.FocusPoint).filter(
@@ -11,7 +11,7 @@ def get_or_create_focus_point(db: Session, name: str, user_id: int) -> models.Fo
     ).first()
     
     if not focus_point:
-        focus_point = models.FocusPoint(name=name, user_id=user_id)
+        focus_point = models.FocusPoint(name=name, user_id=user_id, color=color)
         db.add(focus_point)
         db.commit()
         db.refresh(focus_point)
@@ -39,6 +39,20 @@ def delete_focus_point(db: Session, focus_point_id: int, user_id: int):
     if focus_point:
         db.delete(focus_point)
         db.commit()
+    
+    return focus_point
+
+def update_focus_point_color(db: Session, focus_point_id: int, color: str, user_id: int):
+    """Update the color of a focus point (only if owned by the user)."""
+    focus_point = db.query(models.FocusPoint).filter(
+        models.FocusPoint.id == focus_point_id,
+        models.FocusPoint.user_id == user_id
+    ).first()
+    
+    if focus_point:
+        focus_point.color = color
+        db.commit()
+        db.refresh(focus_point)
     
     return focus_point
 
