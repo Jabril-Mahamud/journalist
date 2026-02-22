@@ -35,8 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TODOIST_API = "https://api.todoist.com/rest/v2"
-
+TODOIST_API = "https://api.todoist.com/api/v1"
 
 def _todoist_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
@@ -234,10 +233,14 @@ def get_todoist_tasks(
     )
     project_names: dict = {}
     if proj_resp.ok:
-        project_names = {p["id"]: p["name"] for p in proj_resp.json()}
+        data = proj_resp.json()
+        projects = data if isinstance(data, list) else data.get("results", [])
+        project_names = {p["id"]: p["name"] for p in projects}
 
     tasks = []
-    for t in resp.json():
+    data = resp.json()
+    items = data if isinstance(data, list) else data.get("results", [])
+    for t in items:
         tasks.append(schemas.TodoistTask(
             id=t["id"],
             content=t["content"],
