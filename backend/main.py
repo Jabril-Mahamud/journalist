@@ -186,8 +186,10 @@ def save_todoist_token(
     if resp.status_code == 401:
         raise HTTPException(status_code=400, detail="Invalid Todoist API token")
     if not resp.ok:
-        raise HTTPException(status_code=502, detail="Could not reach Todoist")
-
+        raise HTTPException(
+            status_code=502, 
+            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+        )
     current_user.todoist_token = body.token
     db.commit()
     return {"connected": True}
@@ -219,7 +221,10 @@ def get_todoist_tasks(
         timeout=10,
     )
     if not resp.ok:
-        raise HTTPException(status_code=502, detail="Failed to fetch tasks from Todoist")
+        raise HTTPException(
+            status_code=502, 
+            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+        )
 
     # Fetch projects for name lookup
     proj_resp = http_requests.get(
@@ -265,8 +270,10 @@ def close_todoist_task(
     if resp.status_code == 404:
         raise HTTPException(status_code=404, detail="Task not found in Todoist")
     if not resp.ok:
-        raise HTTPException(status_code=502, detail="Failed to complete task in Todoist")
-
+        raise HTTPException(
+            status_code=502, 
+            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+        )
     return {"closed": True}
 
 
