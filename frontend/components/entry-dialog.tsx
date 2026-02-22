@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { TagCombobox } from "@/components/tag-combobox"
+import { TaskPanel } from "@/components/task-panel"
 import { useApi, JournalEntry } from "@/lib/api"
 import { Pencil, Trash2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
@@ -64,11 +65,12 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                 focus_point_names: entry.focus_points.map(fp => fp.name),
             })
         }
+        // Reset editing state when a new entry is opened
+        setIsEditing(false)
     }, [entry, form])
 
     const handleSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!entry) return
-        
         setIsSubmitting(true)
         try {
             await api.updateEntry(entry.id, values)
@@ -83,12 +85,10 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
 
     const handleDelete = async () => {
         if (!entry) return
-        
         const confirmed = window.confirm(
             "Delete this entry? This action cannot be undone."
         )
         if (!confirmed) return
-
         setIsDeleting(true)
         try {
             await api.deleteEntry(entry.id)
@@ -113,13 +113,13 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
     }
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
+        return new Date(dateString).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
         })
     }
 
@@ -127,7 +127,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <div className="flex items-start justify-between">
                         <div>
@@ -236,11 +236,14 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                     </Form>
                 ) : (
                     <div className="space-y-4">
+                        {/* Entry content rendered as markdown */}
                         <div className="prose dark:prose-invert max-w-none">
                             <ReactMarkdown>{entry.content}</ReactMarkdown>
                         </div>
+
+                        {/* Focus point badges */}
                         {entry.focus_points && entry.focus_points.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-4">
+                            <div className="flex flex-wrap gap-2 pt-2">
                                 {entry.focus_points.map((focusPoint) => (
                                     <span
                                         key={focusPoint.id}
@@ -255,6 +258,9 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                                 ))}
                             </div>
                         )}
+
+                        {/* ── Todoist task panel ── */}
+                        <TaskPanel entryId={entry.id} />
                     </div>
                 )}
             </DialogContent>

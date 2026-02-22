@@ -20,6 +20,7 @@ class User(Base):
     clerk_user_id = Column(String(255), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    todoist_token = Column(String(255), nullable=True)
     
     # Relationships
     entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
@@ -51,3 +52,16 @@ class JournalEntry(Base):
     # Relationships
     user = relationship("User", back_populates="entries")
     focus_points = relationship("FocusPoint", secondary=entry_focus_points, back_populates="entries")
+    entry_tasks = relationship("EntryTask", back_populates="entry", cascade="all, delete-orphan")
+
+class EntryTask(Base):
+    """Links a Todoist task ID to a journal entry."""
+    __tablename__ = "entry_tasks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    entry_id = Column(Integer, ForeignKey('journal_entries.id'), nullable=False)
+    todoist_task_id = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    entry = relationship("JournalEntry", back_populates="entry_tasks")
