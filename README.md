@@ -64,7 +64,9 @@ POSTGRES_PASSWORD=your-password
 POSTGRES_DB=postgres
 DB_HOST=localhost
 CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
+CLERK_SECRET_KEY=sk_test_xxxx  # For test token generation
 ALLOWED_ORIGINS=http://localhost:3001
+TODOIST_TOKEN=your-todoist-api-token  # Optional, for testing
 ```
 
 Create `frontend/.env.local`:
@@ -279,6 +281,9 @@ make destroy && make init
 - [x] Adaptive activity heatmap with range selector
 - [x] New entry as modal
 - [x] Search by title and content
+- [x] Todoist integration — connect account, view and complete tasks, link tasks to entries
+- [x] Markdown preview/edit toggle in entry editor
+- [x] Link Todoist tasks while writing entries
 
 ### Up next
 
@@ -307,10 +312,6 @@ make destroy && make init
 **Data ownership**
 
 - [ ] Export — download all entries as individual markdown files or a single JSON (most important missing feature for user trust)
-
-**Integrations**
-
-- [ ] Todoist integration — sync daily reflections and tasks into the same mental space
 
 ---
 

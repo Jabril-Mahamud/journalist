@@ -24,10 +24,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { TagCombobox } from "@/components/tag-combobox"
 import { TaskPanel } from "@/components/task-panel"
-import { useApi, JournalEntry } from "@/lib/api"
+import { useApi, JournalEntry, TodoistTask } from "@/lib/api"
 import { Pencil, Trash2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { getReadableTextColor } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -46,6 +48,10 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
     const [isEditing, setIsEditing] = React.useState(false)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isDeleting, setIsDeleting] = React.useState(false)
+    const [todoistConnected, setTodoistConnected] = React.useState(false)
+    const [todoistTasks, setTodoistTasks] = React.useState<TodoistTask[]>([])
+    const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
+    const [loadingTasks, setLoadingTasks] = React.useState(false)
     const api = useApi()
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -58,22 +64,81 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
     })
 
     React.useEffect(() => {
+        if (open && isEditing) {
+            loadTodoistData()
+        }
+    }, [open, isEditing])
+
+    React.useEffect(() => {
         if (entry) {
             form.reset({
                 title: entry.title,
                 content: entry.content,
                 focus_point_names: entry.focus_points.map(fp => fp.name),
             })
+            if (isEditing) {
+                loadLinkedTasks()
+            }
         }
-        // Reset editing state when a new entry is opened
         setIsEditing(false)
+        setSelectedTaskIds(new Set())
     }, [entry, form])
+
+    const loadTodoistData = async () => {
+        try {
+            const status = await api.getTodoistStatus()
+            setTodoistConnected(status.connected)
+            if (status.connected) {
+                setLoadingTasks(true)
+                const tasks = await api.getTodoistTasks()
+                setTodoistTasks(tasks)
+            }
+        } catch (error) {
+            console.error("Error loading Todoist status:", error)
+        } finally {
+            setLoadingTasks(false)
+        }
+    }
+
+    const loadLinkedTasks = async () => {
+        if (!entry) return
+        try {
+            const links = await api.getEntryTasks(entry.id)
+            setSelectedTaskIds(new Set(links.map(l => l.todoist_task_id)))
+        } catch (error) {
+            console.error("Error loading linked tasks:", error)
+        }
+    }
+
+    const toggleTask = (taskId: string) => {
+        setSelectedTaskIds(prev => {
+            const next = new Set(prev)
+            if (next.has(taskId)) {
+                next.delete(taskId)
+            } else {
+                next.add(taskId)
+            }
+            return next
+        })
+    }
 
     const handleSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!entry) return
         setIsSubmitting(true)
         try {
             await api.updateEntry(entry.id, values)
+            const currentLinks = await api.getEntryTasks(entry.id)
+            const currentIds = new Set(currentLinks.map(l => l.todoist_task_id))
+            for (const taskId of selectedTaskIds) {
+                if (!currentIds.has(taskId)) {
+                    await api.linkTaskToEntry(entry.id, taskId)
+                }
+            }
+            for (const link of currentLinks) {
+                if (!selectedTaskIds.has(link.todoist_task_id)) {
+                    await api.unlinkTaskFromEntry(entry.id, link.todoist_task_id)
+                }
+            }
             setIsEditing(false)
             onUpdate()
         } catch (error) {
@@ -110,6 +175,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             })
         }
         setIsEditing(false)
+        setSelectedTaskIds(new Set())
     }
 
     const formatDate = (dateString: string) => {
@@ -129,7 +195,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between pr-8">
                         <div>
                             <DialogTitle className="text-2xl">
                                 {isEditing ? "Edit Entry" : entry.title}
@@ -191,11 +257,28 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                                     <FormItem>
                                         <FormLabel>Content</FormLabel>
                                         <FormControl>
-                                            <Textarea
-                                                placeholder="Write your thoughts..."
-                                                className="min-h-[200px] text-base resize-none"
-                                                {...field}
-                                            />
+                                            <Tabs defaultValue="write" className="w-full">
+                                                <TabsList className="mb-2">
+                                                    <TabsTrigger value="write">Write</TabsTrigger>
+                                                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                                                </TabsList>
+                                                <TabsContent value="write">
+                                                    <Textarea
+                                                        placeholder="Write your thoughts..."
+                                                        className="min-h-[200px] text-base resize-none"
+                                                        {...field}
+                                                    />
+                                                </TabsContent>
+                                                <TabsContent value="preview">
+                                                    <div className="min-h-[200px] p-4 border rounded-md prose dark:prose-invert max-w-none">
+                                                        {field.value ? (
+                                                            <ReactMarkdown>{field.value}</ReactMarkdown>
+                                                        ) : (
+                                                            <span className="text-muted-foreground italic">Nothing to preview</span>
+                                                        )}
+                                                    </div>
+                                                </TabsContent>
+                                            </Tabs>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -220,6 +303,33 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                                 )}
                             />
 
+                            {todoistConnected && todoistTasks.length > 0 && (
+                                <div className="space-y-3">
+                                    <FormLabel>Link Tasks</FormLabel>
+                                    <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
+                                        {loadingTasks ? (
+                                            <span className="text-muted-foreground text-sm">Loading tasks...</span>
+                                        ) : (
+                                            todoistTasks.map(task => (
+                                                <label
+                                                    key={task.id}
+                                                    className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-1 rounded"
+                                                >
+                                                    <Checkbox
+                                                        checked={selectedTaskIds.has(task.id)}
+                                                        onCheckedChange={() => toggleTask(task.id)}
+                                                    />
+                                                    <span className="text-sm flex-1">{task.content}</span>
+                                                    {task.project_name && (
+                                                        <span className="text-xs text-muted-foreground">{task.project_name}</span>
+                                                    )}
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-3 pt-4">
                                 <Button
                                     type="button"
@@ -236,12 +346,10 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                     </Form>
                 ) : (
                     <div className="space-y-4">
-                        {/* Entry content rendered as markdown */}
                         <div className="prose dark:prose-invert max-w-none">
                             <ReactMarkdown>{entry.content}</ReactMarkdown>
                         </div>
 
-                        {/* Focus point badges */}
                         {entry.focus_points && entry.focus_points.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-2">
                                 {entry.focus_points.map((focusPoint) => (
@@ -259,7 +367,6 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                             </div>
                         )}
 
-                        {/* ── Todoist task panel ── */}
                         <TaskPanel entryId={entry.id} />
                     </div>
                 )}

@@ -1,8 +1,16 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Calendar, BarChart3 } from 'lucide-react'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { userId } = await auth()
+  
+  if (userId) {
+    redirect('/app')
+  }
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
