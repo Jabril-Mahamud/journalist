@@ -3,6 +3,8 @@ primary_region = "lhr"
 
 [build]
   dockerfile = "Dockerfile"
+  [build.args]
+    NEXT_PUBLIC_API_URL = "https://journalist-backend.fly.dev"
 
 [env]
   PORT = "3001"
