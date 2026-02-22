@@ -32,6 +32,28 @@ export interface UpdateEntryInput {
     focus_point_names: string[];
 }
 
+export interface TodoistTask {
+    id: string;
+    content: string;
+    description: string;
+    is_completed: boolean;
+    priority: number; // 1 = normal … 4 = urgent
+    due?: {
+        date: string;
+        string: string;
+        is_recurring: boolean;
+    } | null;
+    project_id?: string | null;
+    project_name?: string | null;
+    url: string;
+}
+
+export interface EntryTaskLink {
+    id: number;
+    todoist_task_id: string;
+    created_at: string;
+}
+
 export function useApi() {
     const { getToken } = useAuth();
 
@@ -57,11 +79,14 @@ export function useApi() {
             if (response.status === 401) {
                 throw new Error('Unauthorized - please sign in again');
             }
-            throw new Error(`API error: ${response.status}`);
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.detail || `API error: ${response.status}`);
         }
 
         return response;
     }
+
+    // ── Journal entries ──────────────────────────────────────────────────────
 
     async function getEntries(): Promise<JournalEntry[]> {
         const res = await fetchWithAuth(`${API_URL}/entries/`);
@@ -95,6 +120,8 @@ export function useApi() {
         });
     }
 
+    // ── Focus points ─────────────────────────────────────────────────────────
+
     async function getFocusPoints(): Promise<FocusPoint[]> {
         const res = await fetchWithAuth(`${API_URL}/focus-points/`);
         return res.json();
@@ -122,6 +149,59 @@ export function useApi() {
         return res.json();
     }
 
+    // ── Todoist – token ──────────────────────────────────────────────────────
+
+    async function getTodoistStatus(): Promise<{ connected: boolean }> {
+        const res = await fetchWithAuth(`${API_URL}/todoist/status`);
+        return res.json();
+    }
+
+    async function saveTodoistToken(token: string): Promise<{ connected: boolean }> {
+        const res = await fetchWithAuth(`${API_URL}/todoist/token`, {
+            method: 'PUT',
+            body: JSON.stringify({ token }),
+        });
+        return res.json();
+    }
+
+    async function deleteTodoistToken(): Promise<void> {
+        await fetchWithAuth(`${API_URL}/todoist/token`, { method: 'DELETE' });
+    }
+
+    // ── Todoist – tasks ──────────────────────────────────────────────────────
+
+    async function getTodoistTasks(): Promise<TodoistTask[]> {
+        const res = await fetchWithAuth(`${API_URL}/todoist/tasks`);
+        return res.json();
+    }
+
+    async function closeTodoistTask(taskId: string): Promise<void> {
+        await fetchWithAuth(`${API_URL}/todoist/tasks/${taskId}/close`, {
+            method: 'POST',
+        });
+    }
+
+    // ── Entry ↔ task links ───────────────────────────────────────────────────
+
+    async function getEntryTasks(entryId: number): Promise<EntryTaskLink[]> {
+        const res = await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks`);
+        return res.json();
+    }
+
+    async function linkTaskToEntry(entryId: number, todoistTaskId: string): Promise<EntryTaskLink> {
+        const res = await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks`, {
+            method: 'POST',
+            body: JSON.stringify({ todoist_task_id: todoistTaskId }),
+        });
+        return res.json();
+    }
+
+    async function unlinkTaskFromEntry(entryId: number, todoistTaskId: string): Promise<void> {
+        await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks/${todoistTaskId}`, {
+            method: 'DELETE',
+        });
+    }
+
     return {
         getEntries,
         getEntry,
@@ -132,5 +212,13 @@ export function useApi() {
         createFocusPoint,
         deleteFocusPoint,
         updateFocusPointColor,
+        getTodoistStatus,
+        saveTodoistToken,
+        deleteTodoistToken,
+        getTodoistTasks,
+        closeTodoistTask,
+        getEntryTasks,
+        linkTaskToEntry,
+        unlinkTaskFromEntry,
     };
 }
