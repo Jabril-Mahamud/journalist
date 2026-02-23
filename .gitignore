@@ -6,3 +6,8 @@ journalist/values.secret.yaml
 AGENTS.md
 Agents.md
 **/__pycache__
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml

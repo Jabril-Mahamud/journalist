@@ -1,4 +1,4 @@
-.PHONY: help init dev stop logs status destroy
+.PHONY: help init dev stop logs status destroy test test-docker
 
 # Config
 CLUSTER_NAME = journalist
@@ -15,12 +15,14 @@ help:
 	@echo "Journalist - Development Commands"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "   make init     → First time setup"
-	@echo "   make dev      → Build and run (use this daily)"
-	@echo "   make stop     → Stop everything"
-	@echo "   make logs     → View backend logs"
-	@echo "   make status   → Check what's running"
-	@echo "   make destroy  → Delete entire cluster"
+	@echo "   make init         → First time setup"
+	@echo "   make dev          → Build and run (use this daily)"
+	@echo "   make stop         → Stop everything"
+	@echo "   make logs         → View backend logs"
+	@echo "   make status       → Check what's running"
+	@echo "   make destroy      → Delete entire cluster"
+	@echo "   make test         → Run backend tests locally (fast)"
+	@echo "   make test-docker  → Run tests + verify production build (mirrors CI + Fly.io)"
 	@echo ""
 
 ## init: First-time setup (run once)
@@ -51,6 +53,28 @@ dev:
 	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
 	@echo "✅ Backend:  http://localhost:$(BACKEND_PORT)"
 	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
+	@echo ""
+
+## test: Run backend tests locally (fast, for TDD)
+test:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🧪 Running Backend Tests"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@cd backend && pytest
+	@echo ""
+
+## test-docker: Run tests + verify production build (mirrors exactly what CI and Fly.io run)
+test-docker:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🐳 Running Backend Tests in Docker"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker build --target test --tag journalist-backend-test ./backend
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🏭 Verifying Production Build"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker build --target production --tag journalist-backend:latest ./backend
+	@echo "✅ Production image built successfully"
 	@echo ""
 
 ## stop: Stop everything
@@ -133,6 +157,7 @@ _helm-deploy:
 		--values ./journalist/values.secret.yaml \
 		--wait
 	@echo "✓ Deployed"
+
 _port-forward:
 	@echo "🔌 Starting port forwarding..."
 	@chmod +x scripts/port-forward.sh
