@@ -112,6 +112,29 @@ make dev      # Build images + deploy (run this after any code change)
 make stop     # Stop everything at end of day
 ```
 
+### Database migrations
+
+This project uses [Alembic](https://alembic.sqlalchemy.org/) for database schema migrations. The backend automatically runs migrations on startup via `entrypoint.sh`.
+
+**After first setup or pulling new migrations:**
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+**Creating a new migration:**
+
+When you change `models.py`, generate a migration:
+
+```bash
+cd backend
+alembic revision --autogenerate -m "describe your change"
+alembic upgrade head
+```
+
+**Migration files** are stored in `backend/migrations/versions/` and should be committed to git.
+
 ### Smoke test
 
 Manually verify the backend is working while `make dev` is running:
@@ -121,6 +144,18 @@ Manually verify the backend is working while `make dev` is running:
 ```
 
 Checks `/health` returns 200, forged tokens return 401, and missing tokens return 403.
+
+### Running tests
+
+The backend includes a comprehensive pytest test suite. To run tests:
+
+```bash
+cd backend
+pip install -r dev.txt
+pytest
+```
+
+Tests use an in-memory SQLite database by default (no external dependencies). For testing against a real database, set `TEST_DATABASE_URL` in your environment.
 
 ### Other commands
 
@@ -138,13 +173,30 @@ make destroy  # Nuclear option — deletes the entire cluster
 ```
 journalist/
 ├── backend/                  # FastAPI backend
-│   ├── main.py              # Routes
+│   ├── main.py              # App setup and route includes
 │   ├── models.py            # SQLAlchemy models
 │   ├── schemas.py           # Pydantic schemas
 │   ├── crud.py              # Database operations
 │   ├── auth.py              # Clerk JWT verification (via JWKS)
 │   ├── database.py          # DB connection
+│   ├── routers/             # API route modules
+│   │   ├── entries.py       # Entry endpoints
+│   │   ├── projects.py      # Project endpoints
+│   │   └── todoist.py       # Todoist integration endpoints
+│   ├── tests/               # Pytest test suite
+│   │   ├── conftest.py      # Fixtures and test setup
+│   │   ├── test_health.py
+│   │   ├── test_auth.py
+│   │   ├── test_projects.py
+│   │   ├── test_entries.py
+│   │   ├── test_todoist.py
+│   │   └── test_entry_tasks.py
+│   ├── migrations/          # Alembic migrations
+│   ├── requirements.txt     # Production dependencies
+│   ├── dev.txt # Dev dependencies (pytest, etc.)
+│   ├── pytest.ini           # Pytest configuration
 │   ├── .env.example         # Required env vars (copy to .env)
+│   ├── entrypoint.sh        # Runs migrations + starts server
 │   └── Dockerfile
 ├── frontend/                 # Next.js frontend
 │   ├── app/                 # App router pages
@@ -263,7 +315,7 @@ make destroy && make init
 
 - [x] User authentication (Clerk)
 - [x] Journal entry CRUD
-- [x] Focus points (tags)
+- [x] Projects (organize entries)
 - [x] Calendar view
 - [x] All entries browser with search and filters
 - [x] Activity heatmap
@@ -275,7 +327,7 @@ make destroy && make init
 - [x] Input length validation (Pydantic)
 - [x] Rate limiting
 - [x] Markdown rendering in entries
-- [x] Tag colour picker
+- [x] Project colour picker
 - [x] Streak counter
 - [x] Day/date on entry cards
 - [x] Adaptive activity heatmap with range selector
@@ -284,6 +336,9 @@ make destroy && make init
 - [x] Todoist integration — connect account, view and complete tasks, link tasks to entries
 - [x] Markdown preview/edit toggle in entry editor
 - [x] Link Todoist tasks while writing entries
+- [x] Database migrations with Alembic
+- [ ] Better context menu
+- [x] Improve frontend performance
 
 ### Up next
 
@@ -302,12 +357,12 @@ make destroy && make init
 **Revisiting entries**
 
 - [ ] On this day — show entries from the same date in previous years
-- [ ] Related entries — entries sharing focus points shown when viewing an entry
+- [ ] Related entries — entries sharing projects shown when viewing an entry
 
 **Insights**
 
-- [ ] Writing stats page — total entries, total words, most used tags, most productive day of week, average streak
-- [ ] Focus point breakdown — time distribution across tags over a period
+- [ ] Writing stats page — total entries, total words, most used projects, most productive day of week, average streak
+- [ ] Project breakdown — time distribution across projects over a period
 
 **Data ownership**
 

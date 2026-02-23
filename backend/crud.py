@@ -2,113 +2,119 @@ from sqlalchemy.orm import Session
 import models, schemas
 from typing import List
 
-def get_or_create_focus_point(db: Session, name: str, user_id: int, color: str = "#6366f1") -> models.FocusPoint:
-    """Get existing focus point for this user or create new one"""
+
+def get_or_create_project(db: Session, name: str, user_id: int, color: str = "#6366f1") -> models.Project:
+    """Get existing project for this user or create new one."""
     name = name.strip().lower()
-    focus_point = db.query(models.FocusPoint).filter(
-        models.FocusPoint.name == name,
-        models.FocusPoint.user_id == user_id
+    project = db.query(models.Project).filter(
+        models.Project.name == name,
+        models.Project.user_id == user_id
     ).first()
-    
-    if not focus_point:
-        focus_point = models.FocusPoint(name=name, user_id=user_id, color=color)
-        db.add(focus_point)
+
+    if not project:
+        project = models.Project(name=name, user_id=user_id, color=color)
+        db.add(project)
         db.commit()
-        db.refresh(focus_point)
-    
-    return focus_point
+        db.refresh(project)
 
-def get_all_focus_points(db: Session, user_id: int) -> List[models.FocusPoint]:
-    """Get all focus points for a specific user"""
-    return db.query(models.FocusPoint).filter(
-        models.FocusPoint.user_id == user_id
-    ).order_by(models.FocusPoint.name).all()
+    return project
 
-def delete_focus_point(db: Session, focus_point_id: int, user_id: int):
-    """Delete a focus point (only if owned by the user).
-    
-    Removing a focus point automatically removes it from all entries
+
+def get_all_projects(db: Session, user_id: int) -> List[models.Project]:
+    """Get all projects for a specific user."""
+    return db.query(models.Project).filter(
+        models.Project.user_id == user_id
+    ).order_by(models.Project.name).all()
+
+
+def delete_project(db: Session, project_id: int, user_id: int):
+    """Delete a project (only if owned by the user).
+
+    Removing a project automatically removes it from all entries
     via the cascade on the many-to-many relationship.
     """
-    from typing import Optional
-    focus_point = db.query(models.FocusPoint).filter(
-        models.FocusPoint.id == focus_point_id,
-        models.FocusPoint.user_id == user_id
+    project = db.query(models.Project).filter(
+        models.Project.id == project_id,
+        models.Project.user_id == user_id
     ).first()
-    
-    if focus_point:
-        db.delete(focus_point)
-        db.commit()
-    
-    return focus_point
 
-def update_focus_point_color(db: Session, focus_point_id: int, color: str, user_id: int):
-    """Update the color of a focus point (only if owned by the user)."""
-    focus_point = db.query(models.FocusPoint).filter(
-        models.FocusPoint.id == focus_point_id,
-        models.FocusPoint.user_id == user_id
-    ).first()
-    
-    if focus_point:
-        focus_point.color = color
+    if project:
+        db.delete(project)
         db.commit()
-        db.refresh(focus_point)
-    
-    return focus_point
+
+    return project
+
+
+def update_project_color(db: Session, project_id: int, color: str, user_id: int):
+    """Update the color of a project (only if owned by the user)."""
+    project = db.query(models.Project).filter(
+        models.Project.id == project_id,
+        models.Project.user_id == user_id
+    ).first()
+
+    if project:
+        project.color = color
+        db.commit()
+        db.refresh(project)
+
+    return project
+
 
 def create_entry(db: Session, entry: schemas.JournalEntryCreate, user_id: int):
-    """Create a new journal entry for a specific user"""
-    # Create the entry
+    """Create a new journal entry for a specific user."""
     db_entry = models.JournalEntry(
         title=entry.title,
         content=entry.content,
         user_id=user_id
     )
-    
-    # Add focus points (user-scoped)
-    for focus_name in entry.focus_point_names:
-        focus_point = get_or_create_focus_point(db, focus_name, user_id)
-        db_entry.focus_points.append(focus_point)
-    
+    # Add to session first so relationship appends work without warnings
     db.add(db_entry)
+
+    for project_name in entry.project_names:
+        project = get_or_create_project(db, project_name, user_id)
+        db_entry.projects.append(project)
+
     db.commit()
     db.refresh(db_entry)
     return db_entry
 
+
 def get_entries(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    """Get all entries for a specific user"""
+    """Get all entries for a specific user."""
     return db.query(models.JournalEntry).filter(
         models.JournalEntry.user_id == user_id
     ).order_by(
         models.JournalEntry.created_at.desc()
     ).offset(skip).limit(limit).all()
 
+
 def get_entry(db: Session, entry_id: int, user_id: int):
-    """Get a specific entry for a user (ensures user owns the entry)"""
+    """Get a specific entry for a user (ensures user owns the entry)."""
     return db.query(models.JournalEntry).filter(
         models.JournalEntry.id == entry_id,
         models.JournalEntry.user_id == user_id
     ).first()
 
+
 def update_entry(db: Session, entry_id: int, entry: schemas.JournalEntryUpdate, user_id: int):
-    """Update an entry (only if user owns it)"""
+    """Update an entry (only if user owns it)."""
     db_entry = get_entry(db, entry_id, user_id)
     if db_entry:
         db_entry.title = entry.title
         db_entry.content = entry.content
-        
-        # Update focus points (user-scoped)
-        db_entry.focus_points.clear()
-        for focus_name in entry.focus_point_names:
-            focus_point = get_or_create_focus_point(db, focus_name, user_id)
-            db_entry.focus_points.append(focus_point)
-        
+
+        db_entry.projects.clear()
+        for project_name in entry.project_names:
+            project = get_or_create_project(db, project_name, user_id)
+            db_entry.projects.append(project)
+
         db.commit()
         db.refresh(db_entry)
     return db_entry
 
+
 def delete_entry(db: Session, entry_id: int, user_id: int):
-    """Delete an entry (only if user owns it)"""
+    """Delete an entry (only if user owns it)."""
     db_entry = get_entry(db, entry_id, user_id)
     if db_entry:
         db.delete(db_entry)

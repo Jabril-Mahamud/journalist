@@ -6,7 +6,7 @@ import {
   UseMutationResult,
 } from '@tanstack/react-query';
 import { useApi } from '../api';
-import { JournalEntry, CreateEntryInput, UpdateEntryInput, FocusPoint } from '../api';
+import { JournalEntry, CreateEntryInput, UpdateEntryInput, Project } from '../api';
 
 export function useEntries(
   skip = 0,
@@ -15,7 +15,9 @@ export function useEntries(
   const api = useApi();
   return useQuery<JournalEntry[], Error>({
     queryKey: ['entries', { skip, limit }],
-    queryFn: () => api.getEntries(),
+    queryFn: async () => {
+      return await api.getEntries();
+    },
   });
 }
 
@@ -23,7 +25,9 @@ export function useEntry(id: number): UseQueryResult<JournalEntry, Error> {
   const api = useApi();
   return useQuery<JournalEntry, Error>({
     queryKey: ['entry', id],
-    queryFn: () => api.getEntry(id),
+    queryFn: async () => {
+      return await api.getEntry(id);
+    },
     enabled: id > 0,
   });
 }
@@ -38,7 +42,9 @@ export function useCreateEntry(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation<JournalEntry, Error, CreateEntryInput>({
-    mutationFn: (data) => api.createEntry(data),
+    mutationFn: async (data) => {
+      return await api.createEntry(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
@@ -55,7 +61,9 @@ export function useUpdateEntry(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation<JournalEntry, Error, { id: number; data: UpdateEntryInput }>({
-    mutationFn: ({ id, data }) => api.updateEntry(id, data),
+    mutationFn: async ({ id, data }) => {
+      return await api.updateEntry(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
@@ -72,22 +80,45 @@ export function useDeleteEntry(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, number>({
-    mutationFn: (id) => api.deleteEntry(id),
+    mutationFn: async (id) => {
+      await api.deleteEntry(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
   });
 }
 
-export function useFocusPoints(): UseQueryResult<FocusPoint[], Error> {
+export function useProjects(): UseQueryResult<Project[], Error> {
   const api = useApi();
-  return useQuery<FocusPoint[], Error>({
-    queryKey: ['focusPoints'],
-    queryFn: () => api.getFocusPoints(),
+  return useQuery<Project[], Error>({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      return await api.getProjects();
+    },
   });
 }
 
-export function useDeleteFocusPoint(): UseMutationResult<
+export function useCreateProject(): UseMutationResult<
+  Project,
+  Error,
+  string,
+  unknown
+> {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation<Project, Error, string>({
+    mutationFn: async (name) => {
+      return await api.createProject(name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}
+
+export function useDeleteProject(): UseMutationResult<
   void,
   Error,
   number,
@@ -97,10 +128,32 @@ export function useDeleteFocusPoint(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, number>({
-    mutationFn: (id) => api.deleteFocusPoint(id),
+    mutationFn: async (id) => {
+      await api.deleteProject(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
-      queryClient.invalidateQueries({ queryKey: ['focusPoints'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}
+
+export function useUpdateProjectColor(): UseMutationResult<
+  Project,
+  Error,
+  { id: number; color: string },
+  unknown
+> {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation<Project, Error, { id: number; color: string }>({
+    mutationFn: async ({ id, color }) => {
+      return await api.updateProjectColor(id, color);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
     },
   });
 }

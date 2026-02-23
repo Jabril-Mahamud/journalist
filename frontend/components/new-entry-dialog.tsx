@@ -22,8 +22,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { TagCombobox } from "@/components/tag-combobox"
+import { ProjectCombobox } from "@/components/project-combobox"
 import { useApi, TodoistTask } from "@/lib/api"
+import { useCreateEntry } from "@/lib/hooks/useEntries"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import ReactMarkdown from "react-markdown"
@@ -31,7 +32,7 @@ import ReactMarkdown from "react-markdown"
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
     content: z.string().min(1, "Content is required"),
-    focus_point_names: z.array(z.string()),
+    project_names: z.array(z.string()),
 })
 
 interface NewEntryDialogProps {
@@ -41,19 +42,19 @@ interface NewEntryDialogProps {
 }
 
 export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialogProps) {
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [todoistConnected, setTodoistConnected] = React.useState(false)
     const [todoistTasks, setTodoistTasks] = React.useState<TodoistTask[]>([])
     const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
     const [loadingTasks, setLoadingTasks] = React.useState(false)
     const api = useApi()
+    const createEntryMutation = useCreateEntry()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: "",
             content: "",
-            focus_point_names: [],
+            project_names: [],
         },
     })
 
@@ -92,9 +93,8 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        setIsSubmitting(true)
         try {
-            const newEntry = await api.createEntry(values)
+            const newEntry = await createEntryMutation.mutateAsync(values)
             for (const taskId of selectedTaskIds) {
                 await api.linkTaskToEntry(newEntry.id, taskId)
             }
@@ -104,8 +104,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
             onSuccess()
         } catch (error) {
             console.error("Error creating entry:", error)
-        } finally {
-            setIsSubmitting(false)
         }
     }
 
@@ -176,15 +174,15 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
 
                         <FormField
                             control={form.control}
-                            name="focus_point_names"
+                            name="project_names"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Focus Points</FormLabel>
+                                    <FormLabel>Projects</FormLabel>
                                     <FormControl>
-                                        <TagCombobox
+                                        <ProjectCombobox
                                             value={field.value}
                                             onChange={field.onChange}
-                                            placeholder="Type to add or search focus points..."
+                                            placeholder="Type to add or search projects..."
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -227,8 +225,8 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? "Creating..." : "Create Entry"}
+                            <Button type="submit" disabled={createEntryMutation.isPending}>
+                                {createEntryMutation.isPending ? "Creating..." : "Create Entry"}
                             </Button>
                         </div>
                     </form>

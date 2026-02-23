@@ -12,52 +12,52 @@ import {
     CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { useApi, FocusPoint } from "@/lib/api";
+import { useApi, Project } from "@/lib/api";
 
-interface TagComboboxProps {
+interface ProjectComboboxProps {
     value: string[];
     onChange: (value: string[]) => void;
     placeholder?: string;
 }
 
-export function TagCombobox({
+export function ProjectCombobox({
     value,
     onChange,
-    placeholder = "Add focus points...",
-}: TagComboboxProps) {
+    placeholder = "Add projects...",
+}: ProjectComboboxProps) {
     const [inputValue, setInputValue] = React.useState("");
-    const [existingFocusPoints, setExistingFocusPoints] = React.useState<
-        FocusPoint[]
+    const [existingProjects, setExistingProjects] = React.useState<
+        Project[]
     >([]);
     const [loading, setLoading] = React.useState(true);
     const api = useApi();
 
     React.useEffect(() => {
-        loadFocusPoints();
+        loadProjects();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const loadFocusPoints = async () => {
+    const loadProjects = async () => {
         try {
-            const points = await api.getFocusPoints();
-            setExistingFocusPoints(points);
+            const projects = await api.getProjects();
+            setExistingProjects(projects);
         } catch (error) {
-            console.error("Error loading focus points:", error);
+            console.error("Error loading projects:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSelect = (focusPoint: string) => {
-        const trimmedPoint = focusPoint.trim().toLowerCase();
-        if (trimmedPoint && !value.includes(trimmedPoint)) {
-            onChange([...value, trimmedPoint]);
+    const handleSelect = (project: string) => {
+        const trimmedProject = project.trim().toLowerCase();
+        if (trimmedProject && !value.includes(trimmedProject)) {
+            onChange([...value, trimmedProject]);
             setInputValue("");
         }
     };
 
-    const handleRemove = (focusPointToRemove: string) => {
-        onChange(value.filter((point) => point !== focusPointToRemove));
+    const handleRemove = (projectToRemove: string) => {
+        onChange(value.filter((project) => project !== projectToRemove));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -67,33 +67,32 @@ export function TagCombobox({
         }
     };
 
-    const filteredSuggestions = existingFocusPoints.filter(
-        (point) =>
-            !value.includes(point.name) &&
-            point.name.includes(inputValue.toLowerCase()),
+    const filteredSuggestions = existingProjects.filter(
+        (project) =>
+            !value.includes(project.name) &&
+            project.name.includes(inputValue.toLowerCase()),
     );
 
     const showCreateNew =
         inputValue &&
-        !existingFocusPoints.some(
-            (point) => point.name.toLowerCase() === inputValue.toLowerCase(),
+        !existingProjects.some(
+            (project) => project.name.toLowerCase() === inputValue.toLowerCase(),
         );
 
     return (
         <div className="space-y-3">
-            {/* Selected Focus Points */}
             {value.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                    {value.map((focusPoint) => (
+                    {value.map((project) => (
                         <Badge
-                            key={focusPoint}
+                            key={project}
                             variant="secondary"
                             className="gap-1 pr-1 capitalize"
                         >
-                            {focusPoint}
+                            {project}
                             <button
                                 type="button"
-                                onClick={() => handleRemove(focusPoint)}
+                                onClick={() => handleRemove(project)}
                                 className="ml-1 rounded-sm hover:bg-secondary-foreground/20 p-0.5"
                             >
                                 <X className="h-3 w-3" />
@@ -103,7 +102,6 @@ export function TagCombobox({
                 </div>
             )}
 
-            {/* Command Component */}
             <Command className="border">
                 <CommandInput
                     placeholder={placeholder}
@@ -113,7 +111,7 @@ export function TagCombobox({
                 />
                 <CommandList>
                     {!loading && filteredSuggestions.length === 0 && !showCreateNew && (
-                        <CommandEmpty>No focus points found.</CommandEmpty>
+                        <CommandEmpty>No projects found.</CommandEmpty>
                     )}
 
                     {showCreateNew && (
@@ -130,25 +128,25 @@ export function TagCombobox({
                     )}
 
                     {filteredSuggestions.length > 0 && (
-                        <CommandGroup heading="Existing Focus Points">
-                            {filteredSuggestions.map((point) => (
+                        <CommandGroup heading="Existing Projects">
+                            {filteredSuggestions.map((project) => (
                                 <CommandItem
-                                    key={point.id}
-                                    value={point.name}
-                                    onSelect={() => handleSelect(point.name)}
+                                    key={project.id}
+                                    value={project.name}
+                                    onSelect={() => handleSelect(project.name)}
                                     className="capitalize"
                                 >
                                     <Check
                                         className={cn(
                                             "mr-2 h-4 w-4",
-                                            value.includes(point.name) ? "opacity-100" : "opacity-0",
+                                            value.includes(project.name) ? "opacity-100" : "opacity-0",
                                         )}
                                     />
                                     <span
                                         className="w-2 h-2 rounded-full mr-2"
-                                        style={{ backgroundColor: point.color }}
+                                        style={{ backgroundColor: project.color }}
                                     />
-                                    {point.name}
+                                    {project.name}
                                 </CommandItem>
                             ))}
                         </CommandGroup>
