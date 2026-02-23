@@ -1,17 +1,20 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useApi, JournalEntry } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { AppSidebar } from '@/components/app-sidebar';
-import { NewEntryDialog } from '@/components/new-entry-dialog';
-import { EntryDialog } from '@/components/entry-dialog';
-import { Plus, Calendar, Flame } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { getReadableTextColor } from '@/lib/utils';
+import { useState } from 'react'
+import { JournalEntry } from '@/lib/api'
+import { useEntries } from '@/lib/hooks/useEntries'
+import { Button } from '@/components/ui/button'
+import { AppSidebar } from '@/components/app-sidebar'
+import { NewEntryDialog } from '@/components/new-entry-dialog'
+import { EntryDialog } from '@/components/entry-dialog'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Plus, Calendar, Flame } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 
 function formatHeaderDate(date: Date): string {
-  const day = date.getDate();
+  const day = date.getDate()
   const suffix =
     day === 1 || day === 21 || day === 31
       ? 'st'
@@ -19,110 +22,124 @@ function formatHeaderDate(date: Date): string {
         ? 'nd'
         : day === 3 || day === 23
           ? 'rd'
-          : 'th';
+          : 'th'
 
-  const weekday = date.toLocaleDateString('en-GB', { weekday: 'long' });
-  const month = date.toLocaleDateString('en-GB', { month: 'short' });
-  const year = date.getFullYear();
+  const weekday = date.toLocaleDateString('en-GB', { weekday: 'long' })
+  const month = date.toLocaleDateString('en-GB', { month: 'short' })
+  const year = date.getFullYear()
 
-  return `${weekday} ${day}${suffix} ${month}, ${year}`;
+  return `${weekday} ${day}${suffix} ${month}, ${year}`
 }
 
 function calculateStreak(entries: JournalEntry[]): number {
-  if (entries.length === 0) return 0;
+  if (entries.length === 0) return 0
 
   const uniqueDays = new Set(
     entries.map((e) => new Date(e.created_at).toDateString())
-  );
+  )
 
-  const today = new Date();
-  const todayStr = today.toDateString();
+  const today = new Date()
+  const todayStr = today.toDateString()
 
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toDateString();
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toDateString()
 
-  let startDate: Date;
+  let startDate: Date
   if (uniqueDays.has(todayStr)) {
-    startDate = today;
+    startDate = today
   } else if (uniqueDays.has(yesterdayStr)) {
-    startDate = yesterday;
+    startDate = yesterday
   } else {
-    return 0;
+    return 0
   }
 
-  let streak = 0;
+  let streak = 0
   for (let i = 0; i < 365; i++) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() - i);
+    const d = new Date(startDate)
+    d.setDate(d.getDate() - i)
     if (uniqueDays.has(d.toDateString())) {
-      streak++;
+      streak++
     } else {
-      break;
+      break
     }
   }
 
-  return streak;
+  return streak
+}
+
+function EntrySkeleton() {
+  return (
+    <div className="py-4">
+      <div className="flex items-start gap-4">
+        <div className="flex-1 min-w-0 space-y-3">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-5 w-24 rounded-md" />
+        </div>
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+  )
 }
 
 export default function Home() {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
-  const api = useApi();
-
-  useEffect(() => {
-    loadEntries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadEntries = async () => {
-    try {
-      const data = await api.getEntries();
-      setEntries(data);
-    } catch (error) {
-      console.error('Error loading entries:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sidebar_collapsed', false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false)
+  const { data: entries = [], isLoading, refetch } = useEntries()
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return 'Today'
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      return 'Yesterday'
     } else {
       return date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'short',
         day: 'numeric',
-      });
+      })
     }
-  };
+  }
 
-  const streak = calculateStreak(entries);
+  const streak = calculateStreak(entries)
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen">
         <AppSidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-4xl mx-auto px-8 py-8">
+            <div className="mb-8">
+              <Skeleton className="h-10 w-24 mb-1" />
+              <Skeleton className="h-5 w-32 mb-3" />
+              <div className="flex items-center justify-between gap-4">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-9 w-28" />
+              </div>
+              <Separator className="mt-4" />
+            </div>
+            <div className="space-y-6">
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+            </div>
+          </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -135,12 +152,9 @@ export default function Home() {
       <main className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto px-8 py-8">
 
-          {/* Header */}
           <div className="mb-8">
-            {/* Title */}
             <h1 className="text-4xl font-bold mb-1">Today</h1>
 
-            {/* Streak */}
             <div className="flex items-center gap-1.5 mb-3">
               <Flame className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-medium text-muted-foreground">
@@ -148,7 +162,6 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Date row with New Entry button */}
             <div className="flex items-center justify-between gap-4">
               <p className="text-base font-medium text-muted-foreground">
                 {formatHeaderDate(new Date())}
@@ -166,7 +179,6 @@ export default function Home() {
             <Separator className="mt-4" />
           </div>
 
-          {/* Entries List */}
           {entries.length === 0 ? (
             <div className="text-center py-16">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -187,7 +199,7 @@ export default function Home() {
                 const showDate =
                   index === 0 ||
                   formatDate(entry.created_at) !==
-                    formatDate(entries[index - 1].created_at);
+                    formatDate(entries[index - 1].created_at)
 
                 return (
                   <div key={entry.id}>
@@ -213,20 +225,20 @@ export default function Home() {
                             {entry.title}
                           </h3>
                           <p className="text-muted-foreground line-clamp-2 mb-3">
-                            {entry.content}
+                            {stripMarkdown(entry.content)}
                           </p>
-                          {entry.focus_points && entry.focus_points.length > 0 && (
+                          {entry.projects && entry.projects.length > 0 && (
                              <div className="flex flex-wrap gap-2">
-                               {entry.focus_points.map((focusPoint) => (
+                               {entry.projects.map((project) => (
                                  <span
-                                   key={focusPoint.id}
+                                   key={project.id}
                                    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
                                    style={{
-                                     backgroundColor: focusPoint.color,
-                                     color: getReadableTextColor(focusPoint.color),
+                                     backgroundColor: project.color,
+                                     color: getReadableTextColor(project.color),
                                    }}
                                  >
-                                   {focusPoint.name}
+                                   {project.name}
                                  </span>
                                ))}
                              </div>
@@ -238,7 +250,7 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -248,15 +260,15 @@ export default function Home() {
       <NewEntryDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSuccess={loadEntries}
+        onSuccess={() => refetch()}
       />
 
       <EntryDialog
         entry={selectedEntry}
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
-        onUpdate={loadEntries}
+        onUpdate={() => refetch()}
       />
     </div>
-  );
+  )
 }

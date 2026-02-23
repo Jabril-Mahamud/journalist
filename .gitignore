@@ -5,4 +5,9 @@ journalist/values.secret.yaml
 .vscode/settings.json
 AGENTS.md
 Agents.md
-backend/__pycache__
+**/__pycache__
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml

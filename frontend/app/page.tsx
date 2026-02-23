@@ -36,7 +36,7 @@ export default async function LandingPage() {
         <h1 className="text-5xl font-bold mb-6">Clarity, finally.</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
           A simple, beautiful journaling app that helps you capture thoughts,
-          track your progress, and stay organized with focus points.
+          track your progress, and stay organized with projects.
         </p>
         <Link href="/sign-up">
           <Button size="lg" className="text-lg px-8">
@@ -60,7 +60,7 @@ export default async function LandingPage() {
             </h3>
             <p className="text-muted-foreground">
               Write journal entries quickly with a clean, distraction-free
-              editor. Organize with focus points.
+              editor. Organize with projects.
             </p>
           </div>
           <div className="text-center">
@@ -79,7 +79,7 @@ export default async function LandingPage() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Stay organized</h3>
             <p className="text-muted-foreground">
-              Tag entries with focus points, filter by date, and find what matters. Your
+              Tag entries with projects, filter by date, and find what matters. Your
               thoughts, beautifully organized.
             </p>
           </div>

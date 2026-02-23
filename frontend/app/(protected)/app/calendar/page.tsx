@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { useApi, JournalEntry } from '@/lib/api'
+import { useState, useMemo, useRef } from 'react'
+import { JournalEntry } from '@/lib/api'
+import { useEntries } from '@/lib/hooks/useEntries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { ActivityHeatmap } from '@/components/activity-heatmap'
 import { MonthCalendar } from '@/components/month-calendar'
 import { EntryDialog } from '@/components/entry-dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { getReadableTextColor } from '@/lib/utils'
+import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 
 function formatDateHeader(date: Date): string {
   const day = date.getDate()
@@ -41,32 +44,30 @@ function getEntriesForDay(entries: JournalEntry[], day: Date): JournalEntry[] {
   })
 }
 
+function EntrySkeleton() {
+  return (
+    <div className="py-4">
+      <div className="flex items-start gap-4">
+        <div className="flex-1 min-w-0 space-y-3">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-5 w-24 rounded-md" />
+        </div>
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+  )
+}
+
 export default function CalendarPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sidebar_collapsed', false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
-  const api = useApi()
+  const { data: entries = [], isLoading, refetch } = useEntries()
   const selectedDayRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    loadEntries()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const loadEntries = async () => {
-    try {
-      const data = await api.getEntries()
-      setEntries(data)
-    } catch (error) {
-      console.error('Error loading entries:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDayClick = (date: Date) => {
     setSelectedDay(date)
@@ -94,15 +95,31 @@ export default function CalendarPage() {
     [entries, selectedDay]
   )
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen">
         <AppSidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-4xl mx-auto px-8 py-8">
+            <Skeleton className="h-10 w-32 mb-6" />
+            <div className="mb-8">
+              <Skeleton className="h-32 w-full rounded-md" />
+            </div>
+            <Separator className="mb-8" />
+            <div className="mb-8">
+              <Skeleton className="h-64 w-full rounded-md" />
+            </div>
+            <Separator className="mb-6" />
+            <div className="space-y-4">
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -169,20 +186,20 @@ export default function CalendarPage() {
                           {entry.title}
                         </h3>
                         <p className="text-muted-foreground line-clamp-2 mb-3">
-                          {entry.content}
+                          {stripMarkdown(entry.content)}
                         </p>
-                        {entry.focus_points && entry.focus_points.length > 0 && (
+                        {entry.projects && entry.projects.length > 0 && (
                            <div className="flex flex-wrap gap-2">
-                             {entry.focus_points.map((focusPoint) => (
+                             {entry.projects.map((project) => (
                                <span
-                                 key={focusPoint.id}
+                                 key={project.id}
                                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
                                  style={{
-                                   backgroundColor: focusPoint.color,
-                                   color: getReadableTextColor(focusPoint.color),
+                                   backgroundColor: project.color,
+                                   color: getReadableTextColor(project.color),
                                  }}
                                >
-                                 {focusPoint.name}
+                                 {project.name}
                                </span>
                              ))}
                            </div>
@@ -204,7 +221,7 @@ export default function CalendarPage() {
         entry={selectedEntry}
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
-        onUpdate={loadEntries}
+        onUpdate={() => refetch()}
       />
     </div>
   )

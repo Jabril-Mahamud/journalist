@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-export interface FocusPoint {
+export interface Project {
     id: number;
     name: string;
     color: string;
@@ -15,7 +15,7 @@ export interface JournalEntry {
     id: number;
     title: string;
     content: string;
-    focus_points: FocusPoint[];
+    projects: Project[];
     created_at: string;
     updated_at: string;
 }
@@ -23,13 +23,13 @@ export interface JournalEntry {
 export interface CreateEntryInput {
     title: string;
     content: string;
-    focus_point_names: string[];
+    project_names: string[];
 }
 
 export interface UpdateEntryInput {
     title: string;
     content: string;
-    focus_point_names: string[];
+    project_names: string[];
 }
 
 export interface TodoistTask {
@@ -37,7 +37,7 @@ export interface TodoistTask {
     content: string;
     description: string;
     is_completed: boolean;
-    priority: number; // 1 = normal … 4 = urgent
+    priority: number;
     due?: {
         date: string;
         string: string;
@@ -86,8 +86,6 @@ export function useApi() {
         return response;
     }
 
-    // ── Journal entries ──────────────────────────────────────────────────────
-
     async function getEntries(): Promise<JournalEntry[]> {
         const res = await fetchWithAuth(`${API_URL}/entries/`);
         return res.json();
@@ -120,36 +118,32 @@ export function useApi() {
         });
     }
 
-    // ── Focus points ─────────────────────────────────────────────────────────
-
-    async function getFocusPoints(): Promise<FocusPoint[]> {
-        const res = await fetchWithAuth(`${API_URL}/focus-points/`);
+    async function getProjects(): Promise<Project[]> {
+        const res = await fetchWithAuth(`${API_URL}/projects/`);
         return res.json();
     }
 
-    async function createFocusPoint(name: string): Promise<FocusPoint> {
-        const res = await fetchWithAuth(`${API_URL}/focus-points/`, {
+    async function createProject(name: string): Promise<Project> {
+        const res = await fetchWithAuth(`${API_URL}/projects/`, {
             method: 'POST',
             body: JSON.stringify({ name }),
         });
         return res.json();
     }
 
-    async function deleteFocusPoint(id: number): Promise<void> {
-        await fetchWithAuth(`${API_URL}/focus-points/${id}`, {
+    async function deleteProject(id: number): Promise<void> {
+        await fetchWithAuth(`${API_URL}/projects/${id}`, {
             method: 'DELETE',
         });
     }
 
-    async function updateFocusPointColor(id: number, color: string): Promise<FocusPoint> {
-        const res = await fetchWithAuth(`${API_URL}/focus-points/${id}`, {
+    async function updateProjectColor(id: number, color: string): Promise<Project> {
+        const res = await fetchWithAuth(`${API_URL}/projects/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ color }),
         });
         return res.json();
     }
-
-    // ── Todoist – token ──────────────────────────────────────────────────────
 
     async function getTodoistStatus(): Promise<{ connected: boolean }> {
         const res = await fetchWithAuth(`${API_URL}/todoist/status`);
@@ -168,8 +162,6 @@ export function useApi() {
         await fetchWithAuth(`${API_URL}/todoist/token`, { method: 'DELETE' });
     }
 
-    // ── Todoist – tasks ──────────────────────────────────────────────────────
-
     async function getTodoistTasks(): Promise<TodoistTask[]> {
         const res = await fetchWithAuth(`${API_URL}/todoist/tasks`);
         return res.json();
@@ -180,8 +172,6 @@ export function useApi() {
             method: 'POST',
         });
     }
-
-    // ── Entry ↔ task links ───────────────────────────────────────────────────
 
     async function getEntryTasks(entryId: number): Promise<EntryTaskLink[]> {
         const res = await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks`);
@@ -208,10 +198,10 @@ export function useApi() {
         createEntry,
         updateEntry,
         deleteEntry,
-        getFocusPoints,
-        createFocusPoint,
-        deleteFocusPoint,
-        updateFocusPointColor,
+        getProjects,
+        createProject,
+        deleteProject,
+        updateProjectColor,
         getTodoistStatus,
         saveTodoistToken,
         deleteTodoistToken,
