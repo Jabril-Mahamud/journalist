@@ -6,12 +6,14 @@ import { useUser, useClerk } from '@clerk/nextjs'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Sun, Moon, Monitor, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApi } from '@/lib/api'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 
 export default function SettingsPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sidebar_collapsed', false)
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const { user } = useUser()
@@ -85,8 +87,31 @@ export default function SettingsPage() {
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-8 py-8">
+            <Skeleton className="h-10 w-28 mb-8" />
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-5 w-56" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 flex-1" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-5 w-80" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-10 w-28" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )

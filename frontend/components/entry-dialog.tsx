@@ -22,9 +22,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { TagCombobox } from "@/components/tag-combobox"
+import { ProjectCombobox } from "@/components/project-combobox"
 import { TaskPanel } from "@/components/task-panel"
 import { useApi, JournalEntry, TodoistTask } from "@/lib/api"
+import { useUpdateEntry, useDeleteEntry } from "@/lib/hooks/useEntries"
 import { Pencil, Trash2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { getReadableTextColor } from "@/lib/utils"
@@ -34,7 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
     content: z.string().min(1, "Content is required"),
-    focus_point_names: z.array(z.string()),
+    project_names: z.array(z.string()),
 })
 
 interface EntryDialogProps {
@@ -46,20 +47,20 @@ interface EntryDialogProps {
 
 export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialogProps) {
     const [isEditing, setIsEditing] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [isDeleting, setIsDeleting] = React.useState(false)
     const [todoistConnected, setTodoistConnected] = React.useState(false)
     const [todoistTasks, setTodoistTasks] = React.useState<TodoistTask[]>([])
     const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
     const [loadingTasks, setLoadingTasks] = React.useState(false)
     const api = useApi()
+    const updateEntryMutation = useUpdateEntry()
+    const deleteEntryMutation = useDeleteEntry()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: "",
             content: "",
-            focus_point_names: [],
+            project_names: [],
         },
     })
 
@@ -74,7 +75,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             form.reset({
                 title: entry.title,
                 content: entry.content,
-                focus_point_names: entry.focus_points.map(fp => fp.name),
+                project_names: entry.projects.map(p => p.name),
             })
             if (isEditing) {
                 loadLinkedTasks()
@@ -124,9 +125,8 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
 
     const handleSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!entry) return
-        setIsSubmitting(true)
         try {
-            await api.updateEntry(entry.id, values)
+            await updateEntryMutation.mutateAsync({ id: entry.id, data: values })
             const currentLinks = await api.getEntryTasks(entry.id)
             const currentIds = new Set(currentLinks.map(l => l.todoist_task_id))
             for (const taskId of selectedTaskIds) {
@@ -143,8 +143,6 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             onUpdate()
         } catch (error) {
             console.error("Error updating entry:", error)
-        } finally {
-            setIsSubmitting(false)
         }
     }
 
@@ -154,15 +152,12 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             "Delete this entry? This action cannot be undone."
         )
         if (!confirmed) return
-        setIsDeleting(true)
         try {
-            await api.deleteEntry(entry.id)
+            await deleteEntryMutation.mutateAsync(entry.id)
             onOpenChange(false)
             onUpdate()
         } catch (error) {
             console.error("Error deleting entry:", error)
-        } finally {
-            setIsDeleting(false)
         }
     }
 
@@ -171,7 +166,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             form.reset({
                 title: entry.title,
                 content: entry.content,
-                focus_point_names: entry.focus_points.map(fp => fp.name),
+                project_names: entry.projects.map(p => p.name),
             })
         }
         setIsEditing(false)
@@ -219,7 +214,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleDelete}
-                                    disabled={isDeleting}
+                                    disabled={deleteEntryMutation.isPending}
                                     className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -287,15 +282,15 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
 
                             <FormField
                                 control={form.control}
-                                name="focus_point_names"
+                                name="project_names"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Focus Points</FormLabel>
+                                        <FormLabel>Projects</FormLabel>
                                         <FormControl>
-                                            <TagCombobox
+                                            <ProjectCombobox
                                                 value={field.value}
                                                 onChange={field.onChange}
-                                                placeholder="Type to add or search focus points..."
+                                                placeholder="Type to add or search projects..."
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -338,8 +333,8 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Saving..." : "Save Changes"}
+                                <Button type="submit" disabled={updateEntryMutation.isPending}>
+                                    {updateEntryMutation.isPending ? "Saving..." : "Save Changes"}
                                 </Button>
                             </div>
                         </form>
@@ -350,18 +345,18 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                             <ReactMarkdown>{entry.content}</ReactMarkdown>
                         </div>
 
-                        {entry.focus_points && entry.focus_points.length > 0 && (
+                        {entry.projects && entry.projects.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-2">
-                                {entry.focus_points.map((focusPoint) => (
+                                {entry.projects.map((project) => (
                                     <span
-                                        key={focusPoint.id}
+                                        key={project.id}
                                         className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
                                         style={{
-                                            backgroundColor: focusPoint.color,
-                                            color: getReadableTextColor(focusPoint.color),
+                                            backgroundColor: project.color,
+                                            color: getReadableTextColor(project.color),
                                         }}
                                     >
-                                        {focusPoint.name}
+                                        {project.name}
                                     </span>
                                 ))}
                             </div>

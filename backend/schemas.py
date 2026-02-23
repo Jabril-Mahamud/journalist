@@ -13,17 +13,17 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
-class FocusPointBase(BaseModel):
+class ProjectBase(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     color: str = Field(default="#6366f1", pattern=r'^#[0-9a-fA-F]{6}$')
 
-class FocusPointCreate(FocusPointBase):
+class ProjectCreate(ProjectBase):
     pass
 
-class FocusPointUpdate(BaseModel):
+class ProjectUpdate(BaseModel):
     color: str = Field(pattern=r'^#[0-9a-fA-F]{6}$')
 
-class FocusPoint(FocusPointBase):
+class Project(ProjectBase):
     id: int
     created_at: datetime
     
@@ -35,21 +35,19 @@ class JournalEntryBase(BaseModel):
     content: str = Field(min_length=1, max_length=100000)
 
 class JournalEntryCreate(JournalEntryBase):
-    focus_point_names: List[Annotated[str, Field(min_length=1, max_length=50)]] = []
+    project_names: List[Annotated[str, Field(min_length=1, max_length=50)]] = []
 
 class JournalEntryUpdate(JournalEntryBase):
-    focus_point_names: List[Annotated[str, Field(min_length=1, max_length=50)]] = []
+    project_names: List[Annotated[str, Field(min_length=1, max_length=50)]] = []
 
 class JournalEntry(JournalEntryBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    focus_points: List[FocusPoint] = []
+    projects: List[Project] = []
     
     class Config:
         from_attributes = True
-
-# ── Todoist ──────────────────────────────────────────────────────────────────
 
 class TodoistTokenSave(BaseModel):
     token: str = Field(min_length=1, max_length=255)
@@ -62,7 +60,7 @@ class TodoistTask(BaseModel):
     content: str
     description: str = ""
     is_completed: bool
-    priority: int  # 1 (normal) – 4 (urgent)
+    priority: int
     due: Optional[dict] = None
     project_id: Optional[str] = None
     project_name: Optional[str] = None
