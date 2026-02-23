@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { JournalEntry } from '@/lib/types';
+import { JournalEntry } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 

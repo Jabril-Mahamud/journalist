@@ -21,13 +21,13 @@ echo "Checking tables..."
 echo ""
 
 # Check tables exist
-TABLES=$(kubectl exec -it postgres-0 -- psql -U postgres -d journalist -t -c "\dt" 2>/dev/null | grep -E "users|journal_entries|focus_points|entry_focus_points" | wc -l)
+TABLES=$(kubectl exec -it postgres-0 -- psql -U postgres -d journalist -t -c "\dt" 2>/dev/null | grep -E "users|journal_entries|projects|entry_projects" | wc -l)
 
 if [ "$TABLES" -eq 4 ]; then
     echo "✓ All 4 tables exist"
 else
     echo "⚠️  Expected 4 tables, found $TABLES"
-    echo "   Tables should be: users, journal_entries, focus_points, entry_focus_points"
+    echo "   Tables should be: users, journal_entries, projects, entry_projects"
 fi
 
 echo ""
@@ -43,14 +43,14 @@ echo "Journal Entries table:"
 kubectl exec -it postgres-0 -- psql -U postgres -d journalist -c "\d journal_entries" 2>/dev/null | grep -E "id|user_id|title|content|created_at|updated_at"
 
 echo ""
-echo "Focus Points table:"
-kubectl exec -it postgres-0 -- psql -U postgres -d journalist -c "\d focus_points" 2>/dev/null | grep -E "id|user_id|name|created_at"
+echo "Projects table:"
+kubectl exec -it postgres-0 -- psql -U postgres -d journalist -c "\d projects" 2>/dev/null | grep -E "id|user_id|name|created_at"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Schema Check Complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "If you see user_id columns in journal_entries and focus_points,"
+echo "If you see user_id columns in journal_entries and projects,"
 echo "then the migration was successful! ✨"
 echo ""

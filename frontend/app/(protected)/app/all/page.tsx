@@ -1,16 +1,19 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useApi, JournalEntry, FocusPoint } from '@/lib/api'
+import { JournalEntry } from '@/lib/api'
+import { useEntries, useProjects, useCreateProject, useDeleteProject, useUpdateProjectColor } from '@/lib/hooks/useEntries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { EntryDialog } from '@/components/entry-dialog'
 import { DatePicker } from '@/components/date-picker'
-import { TagColorPicker } from '@/components/tag-color-picker'
+import { ProjectColorPicker } from '@/components/project-color-picker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { Calendar, X, Plus, Trash2, Tag, Search } from 'lucide-react'
-import { getReadableTextColor } from '@/lib/utils'
+import { Calendar, X, Plus, Trash2, Folder, Search } from 'lucide-react'
+import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 import { parse } from 'date-fns'
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -59,22 +62,41 @@ function groupEntriesByDate(
   }))
 }
 
+function EntrySkeleton() {
+  return (
+    <div className="py-4">
+      <div className="flex items-start gap-4">
+        <div className="flex-1 min-w-0 space-y-3">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-5 w-24 rounded-md" />
+        </div>
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+  )
+}
+
 export default function AllEntriesPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>([])
-  const [focusPoints, setFocusPoints] = useState<FocusPoint[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sidebar_collapsed', false)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [activeFocusPoints, setActiveFocusPoints] = useState<string[]>([])
+  const [activeProjects, setActiveProjects] = useState<string[]>([])
   const [dateFrom, setDateFrom] = useState<string | undefined>(undefined)
   const [dateTo, setDateTo] = useState<string | undefined>(undefined)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
+  const [newProjectName, setNewProjectName] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
-  const [showTagManager, setShowTagManager] = useState(false)
-  const api = useApi()
+  const [showProjectManager, setShowProjectManager] = useState(false)
+  
+  const { data: entries = [], isLoading: entriesLoading, refetch: refetchEntries } = useEntries()
+  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects()
+  const createProjectMutation = useCreateProject()
+  const deleteProjectMutation = useDeleteProject()
+  const updateProjectColorMutation = useUpdateProjectColor()
+  
   const colorUpdateTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({})
 
   useEffect(() => {
@@ -85,37 +107,11 @@ export default function AllEntriesPage() {
   }, [])
 
   useEffect(() => {
-    loadEntries()
-    loadFocusPoints()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery])
-
-  const loadEntries = async () => {
-    try {
-      const data = await api.getEntries()
-      setEntries(data)
-    } catch (error) {
-      console.error('Error loading entries:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFocusPoints = async () => {
-    try {
-      const data = await api.getFocusPoints()
-      setFocusPoints(data)
-    } catch (error) {
-      console.error('Error loading focus points:', error)
-    }
-  }
 
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
@@ -126,12 +122,12 @@ export default function AllEntriesPage() {
         if (!titleMatch && !contentMatch) return false
       }
 
-      if (activeFocusPoints.length > 0) {
-        const entryFocusNames = entry.focus_points.map((fp) => fp.name)
-        const hasAllTags = activeFocusPoints.every((tag) =>
-          entryFocusNames.includes(tag)
+      if (activeProjects.length > 0) {
+        const entryProjectNames = entry.projects.map((p) => p.name)
+        const hasAllProjects = activeProjects.every((project) =>
+          entryProjectNames.includes(project)
         )
-        if (!hasAllTags) return false
+        if (!hasAllProjects) return false
       }
 
       if (dateFrom || dateTo) {
@@ -150,15 +146,15 @@ export default function AllEntriesPage() {
 
       return true
     })
-  }, [entries, debouncedSearch, activeFocusPoints, dateFrom, dateTo])
+  }, [entries, debouncedSearch, activeProjects, dateFrom, dateTo])
 
   const groupedEntries = useMemo(
     () => groupEntriesByDate(filteredEntries),
     [filteredEntries]
   )
 
-  const toggleFocusPoint = (name: string) => {
-    setActiveFocusPoints((prev) =>
+  const toggleProject = (name: string) => {
+    setActiveProjects((prev) =>
       prev.includes(name)
         ? prev.filter((n) => n !== name)
         : [...prev, name]
@@ -167,79 +163,93 @@ export default function AllEntriesPage() {
 
   const clearFilters = () => {
     setSearchQuery('')
-    setActiveFocusPoints([])
+    setActiveProjects([])
     setDateFrom(undefined)
     setDateTo(undefined)
   }
 
-  const handleCreateTag = async (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTagName.trim()) return
+    if (!newProjectName.trim()) return
 
     try {
-      const created = await api.createFocusPoint(newTagName.trim())
-      setFocusPoints((prev) => [...prev, created])
-      setNewTagName('')
+      await createProjectMutation.mutateAsync(newProjectName.trim())
+      setNewProjectName('')
     } catch (error) {
-      console.error('Failed to create tag:', error)
+      console.error('Failed to create project:', error)
     }
   }
 
-  const handleDeleteTag = async (id: number) => {
-    const tag = focusPoints.find((fp) => fp.id === id)
-    if (!tag) return
+  const handleDeleteProject = async (id: number) => {
+    const project = projects.find((p) => p.id === id)
+    if (!project) return
 
     const confirmed = window.confirm(
-      `Delete "${tag.name}"? It will be removed from all entries.`
+      `Delete "${project.name}"? It will be removed from all entries.`
     )
     if (!confirmed) return
 
     setDeletingId(id)
     try {
-      await api.deleteFocusPoint(id)
-      setFocusPoints((prev) => prev.filter((fp) => fp.id !== id))
-      setActiveFocusPoints((prev) => prev.filter((name) => name !== tag.name))
+      await deleteProjectMutation.mutateAsync(id)
+      setActiveProjects((prev) => prev.filter((name) => name !== project.name))
     } catch (error) {
-      console.error('Failed to delete tag:', error)
+      console.error('Failed to delete project:', error)
     } finally {
       setDeletingId(null)
     }
   }
 
   const handleColorChange = useCallback((id: number, newColor: string) => {
-    const oldColor = focusPoints.find((fp) => fp.id === id)?.color
-    setFocusPoints((prev) =>
-      prev.map((fp) => (fp.id === id ? { ...fp, color: newColor } : fp))
+    updateProjectColorMutation.mutate(
+      { id, color: newColor },
+      {
+        onError: () => {
+          refetchProjects()
+        }
+      }
     )
 
     if (colorUpdateTimeoutRef.current[id]) {
       clearTimeout(colorUpdateTimeoutRef.current[id])
     }
-
-    colorUpdateTimeoutRef.current[id] = setTimeout(async () => {
-      try {
-        await api.updateFocusPointColor(id, newColor)
-      } catch (error) {
-        console.error('Failed to update color:', error)
-        setFocusPoints((prev) =>
-          prev.map((fp) => (fp.id === id && oldColor ? { ...fp, color: oldColor } : fp))
-        )
-      }
-    }, 500)
-  }, [focusPoints, api])
+  }, [updateProjectColorMutation, refetchProjects])
 
   const hasActiveFilters =
-    searchQuery || activeFocusPoints.length > 0 || dateFrom || dateTo
+    searchQuery || activeProjects.length > 0 || dateFrom || dateTo
 
-  if (loading) {
+  const isLoading = entriesLoading || projectsLoading
+
+  if (isLoading) {
     return (
       <div className="flex h-screen">
         <AppSidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-4xl mx-auto px-8 py-8">
+            <Skeleton className="h-10 w-36 mb-6" />
+            
+            <div className="space-y-4 mb-6">
+              <Skeleton className="h-10 w-full" />
+              
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-6 w-16 rounded-md" />
+                <Skeleton className="h-6 w-20 rounded-md" />
+                <Skeleton className="h-6 w-14 rounded-md" />
+              </div>
+            </div>
+            
+            <Separator className="mb-6" />
+            
+            <div className="space-y-6">
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+              <EntrySkeleton />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -285,17 +295,17 @@ export default function AllEntriesPage() {
 
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex flex-wrap gap-2">
-                {focusPoints.map((fp) => (
+                {projects.map((project) => (
                   <button
-                    key={fp.id}
-                    onClick={() => toggleFocusPoint(fp.name)}
+                    key={project.id}
+                    onClick={() => toggleProject(project.name)}
                     className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize transition-colors cursor-pointer"
                     style={{
-                      backgroundColor: fp.color,
-                      color: getReadableTextColor(fp.color),
+                      backgroundColor: project.color,
+                      color: getReadableTextColor(project.color),
                     }}
                   >
-                    {fp.name}
+                    {project.name}
                   </button>
                 ))}
               </div>
@@ -304,11 +314,11 @@ export default function AllEntriesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowTagManager(!showTagManager)}
+                  onClick={() => setShowProjectManager(!showProjectManager)}
                   className="text-muted-foreground"
                 >
-                  <Tag className="h-4 w-4 mr-1" />
-                  Manage tags
+                  <Folder className="h-4 w-4 mr-1" />
+                  Manage projects
                 </Button>
                 <div className="flex items-center gap-1">
                   <span className="text-sm text-muted-foreground">From</span>
@@ -329,45 +339,45 @@ export default function AllEntriesPage() {
               </div>
             </div>
 
-            {showTagManager && (
+            {showProjectManager && (
               <div className="border rounded-lg p-4 space-y-4">
-                <h3 className="text-sm font-semibold">Manage Tags</h3>
+                <h3 className="text-sm font-semibold">Manage Projects</h3>
                 
-                <form onSubmit={handleCreateTag} className="flex gap-2">
+                <form onSubmit={handleCreateProject} className="flex gap-2">
                   <Input
-                    placeholder="New tag name..."
-                    value={newTagName}
-                    onChange={(e) => setNewTagName(e.target.value)}
+                    placeholder="New project name..."
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
                     className="flex-1"
                   />
-                  <Button type="submit" size="sm" disabled={!newTagName.trim()}>
+                  <Button type="submit" size="sm" disabled={!newProjectName.trim() || createProjectMutation.isPending}>
                     <Plus className="h-4 w-4 mr-1" />
                     Add
                   </Button>
                 </form>
 
-                {focusPoints.length > 0 && (
+                {projects.length > 0 && (
                   <div className="space-y-1">
-                    {focusPoints.map((fp) => (
+                    {projects.map((project) => (
                       <div
-                        key={fp.id}
+                        key={project.id}
                         className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-accent/50"
                       >
                         <div className="flex items-center gap-2">
-                          <TagColorPicker
-                            color={fp.color}
-                            onChange={(newColor) => handleColorChange(fp.id, newColor)}
+                          <ProjectColorPicker
+                            color={project.color}
+                            onChange={(newColor) => handleColorChange(project.id, newColor)}
                           />
-                          <span className="capitalize text-sm">{fp.name}</span>
+                          <span className="capitalize text-sm">{project.name}</span>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteTag(fp.id)}
-                          disabled={deletingId === fp.id}
+                          onClick={() => handleDeleteProject(project.id)}
+                          disabled={deletingId === project.id || deleteProjectMutation.isPending}
                           className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         >
-                          {deletingId === fp.id ? (
+                          {deletingId === project.id ? (
                             'Deleting...'
                           ) : (
                             <Trash2 className="h-4 w-4" />
@@ -378,8 +388,8 @@ export default function AllEntriesPage() {
                   </div>
                 )}
 
-                {focusPoints.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No tags yet. Create one above.</p>
+                {projects.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No projects yet. Create one above.</p>
                 )}
               </div>
             )}
@@ -434,20 +444,20 @@ export default function AllEntriesPage() {
                             {entry.title}
                           </h3>
                           <p className="text-muted-foreground line-clamp-2 mb-3">
-                            {entry.content}
+                            {stripMarkdown(entry.content)}
                           </p>
-                          {entry.focus_points && entry.focus_points.length > 0 && (
+                          {entry.projects && entry.projects.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                              {entry.focus_points.map((focusPoint) => (
+                              {entry.projects.map((project) => (
                                 <span
-                                  key={focusPoint.id}
+                                  key={project.id}
                                   className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium capitalize"
                                   style={{
-                                    backgroundColor: focusPoint.color,
-                                    color: getReadableTextColor(focusPoint.color),
+                                    backgroundColor: project.color,
+                                    color: getReadableTextColor(project.color),
                                   }}
                                 >
-                                  {focusPoint.name}
+                                  {project.name}
                                 </span>
                               ))}
                             </div>
@@ -470,7 +480,7 @@ export default function AllEntriesPage() {
         entry={selectedEntry}
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
-        onUpdate={loadEntries}
+        onUpdate={() => refetchEntries()}
       />
     </div>
   )

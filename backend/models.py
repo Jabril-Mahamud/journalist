@@ -5,12 +5,11 @@ from datetime import datetime
 
 Base = declarative_base()
 
-# Association table for many-to-many relationship
-entry_focus_points = Table(
-    'entry_focus_points',
+entry_projects = Table(
+    'entry_projects',
     Base.metadata,
     Column('entry_id', Integer, ForeignKey('journal_entries.id'), primary_key=True),
-    Column('focus_point_id', Integer, ForeignKey('focus_points.id'), primary_key=True)
+    Column('project_id', Integer, ForeignKey('projects.id'), primary_key=True)
 )
 
 class User(Base):
@@ -22,12 +21,11 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     todoist_token = Column(String(255), nullable=True)
     
-    # Relationships
     entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
-    focus_points = relationship("FocusPoint", back_populates="user", cascade="all, delete-orphan")
+    projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
 
-class FocusPoint(Base):
-    __tablename__ = "focus_points"
+class Project(Base):
+    __tablename__ = "projects"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False, index=True)
@@ -35,9 +33,8 @@ class FocusPoint(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
-    user = relationship("User", back_populates="focus_points")
-    entries = relationship("JournalEntry", secondary=entry_focus_points, back_populates="focus_points")
+    user = relationship("User", back_populates="projects")
+    entries = relationship("JournalEntry", secondary=entry_projects, back_populates="projects")
 
 class JournalEntry(Base):
     __tablename__ = "journal_entries"
@@ -49,9 +46,8 @@ class JournalEntry(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
     user = relationship("User", back_populates="entries")
-    focus_points = relationship("FocusPoint", secondary=entry_focus_points, back_populates="entries")
+    projects = relationship("Project", secondary=entry_projects, back_populates="entries")
     entry_tasks = relationship("EntryTask", back_populates="entry", cascade="all, delete-orphan")
 
 class EntryTask(Base):
@@ -63,5 +59,4 @@ class EntryTask(Base):
     todoist_task_id = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
     entry = relationship("JournalEntry", back_populates="entry_tasks")

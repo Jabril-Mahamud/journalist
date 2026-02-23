@@ -13,12 +13,12 @@ const COLORS = [
     "#8b5cf6", "#d946ef", "#64748b", "#78716c",
 ]
 
-interface TagColorPickerProps {
+interface ProjectColorPickerProps {
     color: string
     onChange: (color: string) => void
 }
 
-export function TagColorPicker({ color, onChange }: TagColorPickerProps) {
+export function ProjectColorPicker({ color, onChange }: ProjectColorPickerProps) {
     return (
         <Popover>
             <PopoverTrigger asChild>
