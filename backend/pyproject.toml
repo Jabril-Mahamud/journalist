@@ -2,4 +2,5 @@
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --cov=. --cov-report=term-missing --cov-report=html"
+asyncio_mode = "auto"
+addopts = "-v --tb=short --cov=. --cov-report=term-missing --cov-report=html"

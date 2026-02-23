@@ -151,7 +151,7 @@ The backend includes a comprehensive pytest test suite. To run tests:
 
 ```bash
 cd backend
-pip install -r requirements-dev.txt
+pip install -r dev.txt
 pytest
 ```
 
@@ -193,7 +193,7 @@ journalist/
 │   │   └── test_entry_tasks.py
 │   ├── migrations/          # Alembic migrations
 │   ├── requirements.txt     # Production dependencies
-│   ├── requirements-dev.txt # Dev dependencies (pytest, etc.)
+│   ├── dev.txt # Dev dependencies (pytest, etc.)
 │   ├── pytest.ini           # Pytest configuration
 │   ├── .env.example         # Required env vars (copy to .env)
 │   ├── entrypoint.sh        # Runs migrations + starts server
@@ -338,7 +338,7 @@ make destroy && make init
 - [x] Link Todoist tasks while writing entries
 - [x] Database migrations with Alembic
 - [ ] Better context menu
-- [ ] Improve frontend performance
+- [x] Improve frontend performance
 
 ### Up next
 
