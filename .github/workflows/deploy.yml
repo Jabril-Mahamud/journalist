@@ -52,7 +52,7 @@ jobs:
           cache-dependency-path: backend/requirements/prod.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements/prod.txt
 
       - name: Check syntax (pyflakes)
         run: python -m py_compile main.py models.py schemas.py crud.py auth.py database.py
