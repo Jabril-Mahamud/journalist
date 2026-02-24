@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 import models, schemas
 from typing import List
 
@@ -79,13 +79,14 @@ def create_entry(db: Session, entry: schemas.JournalEntryCreate, user_id: int):
     return db_entry
 
 
-def get_entries(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    """Get all entries for a specific user."""
-    return db.query(models.JournalEntry).filter(
-        models.JournalEntry.user_id == user_id
-    ).order_by(
-        models.JournalEntry.created_at.desc()
-    ).offset(skip).limit(limit).all()
+
+def get_entries(db, user_id, skip=0, limit=100):
+    return db.query(models.JournalEntry)\
+        .options(joinedload(models.JournalEntry.projects))\
+        .options(joinedload(models.JournalEntry.entry_tasks))\
+        .filter(models.JournalEntry.user_id == user_id)\
+        .order_by(models.JournalEntry.created_at.desc())\
+        .offset(skip).limit(limit).all()
 
 
 def get_entry(db: Session, entry_id: int, user_id: int):

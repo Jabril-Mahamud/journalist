@@ -12,17 +12,24 @@ security = HTTPBearer(auto_error=False)
 
 JWKS_URL = os.getenv("CLERK_JWKS_URL")
 
+_jwks_client: Optional[PyJWKClient] = None
+
+
+def _get_jwks_client() -> PyJWKClient:
+    global _jwks_client
+    if _jwks_client is None:
+        _jwks_client = PyJWKClient(JWKS_URL, cache_keys=True)
+    return _jwks_client
+
 
 def verify_clerk_token(token: str) -> dict:
     if not JWKS_URL:
-        # No JWKS URL configured — we cannot verify any token,
-        # so treat all tokens as invalid rather than leaking a 500.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token"
         )
     try:
-        jwks_client = PyJWKClient(JWKS_URL)
+        jwks_client = _get_jwks_client()
         signing_key = jwks_client.get_signing_key_from_jwt(token)
         return jwt.decode(
             token,
