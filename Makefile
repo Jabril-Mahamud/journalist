@@ -36,7 +36,10 @@ init:
 	@$(MAKE) --no-print-directory _helm-deploy
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
-	@echo "✅ Ready at http://localhost:$(FRONTEND_PORT)"
+	@echo "✅ Ready!"
+	@echo "   Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "   Backend:  http://localhost:$(BACKEND_PORT)"
+	@echo "   API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
 ## dev: Build and run (use this daily)
@@ -48,6 +51,7 @@ dev:
 	@$(MAKE) --no-print-directory _build-images
 	@$(MAKE) --no-print-directory _load-images
 	@$(MAKE) --no-print-directory _helm-deploy
+	@$(MAKE) --no-print-directory _restart-pods
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
 	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
@@ -157,6 +161,13 @@ _helm-deploy:
 		--values ./journalist/values.secret.yaml \
 		--wait
 	@echo "✓ Deployed"
+
+_restart-pods:
+	@echo "🔄 Restarting pods to pick up new images..."
+	@kubectl rollout restart deployment/backend deployment/frontend
+	@kubectl rollout status deployment/backend --timeout=60s
+	@kubectl rollout status deployment/frontend --timeout=60s
+	@echo "✓ Pods updated"
 
 _port-forward:
 	@echo "🔌 Starting port forwarding..."
