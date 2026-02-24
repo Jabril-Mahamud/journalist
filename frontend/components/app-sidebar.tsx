@@ -19,7 +19,7 @@ export function AppSidebar({
     onToggle: () => void
 }) {
     const pathname = usePathname()
-    const { theme, setTheme } = useTheme()
+    const { setTheme, resolvedTheme } = useTheme()
     const { user } = useUser()
     const { signOut } = useClerk()
     const [mounted, setMounted] = React.useState(false)
@@ -36,9 +36,15 @@ export function AppSidebar({
 
     const settingsItem = { icon: Settings, label: "Settings", href: "/app/settings" }
 
+    // Read directly from the DOM — this is what next-themes actually controls,
+    // so it's always accurate regardless of React state / hydration timing.
     const toggleTheme = () => {
-        setTheme(theme === "dark" ? "light" : "dark")
+        const isDarkNow = document.documentElement.classList.contains("dark")
+        setTheme(isDarkNow ? "light" : "dark")
     }
+
+    // resolvedTheme only for icon/label — gated on mounted to avoid hydration mismatch
+    const isDark = mounted && resolvedTheme === "dark"
 
     return (
         <div
@@ -93,12 +99,10 @@ export function AppSidebar({
                     size={isCollapsed ? "icon" : "default"}
                     onClick={toggleTheme}
                 >
-                    {mounted && theme === "dark" ? (
-                        <Sun className="h-5 w-5" />
-                    ) : (
-                        <Moon className="h-5 w-5" />
+                    {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    {!isCollapsed && (
+                        <span className="ml-3">{isDark ? "Light mode" : "Dark mode"}</span>
                     )}
-                    {!isCollapsed && <span className="ml-3">{mounted && theme === "dark" ? "Light mode" : "Dark mode"}</span>}
                 </Button>
 
                 <Link href={settingsItem.href}>
