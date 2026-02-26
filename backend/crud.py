@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session,joinedload
+from sqlalchemy.orm import Session, joinedload
 import models, schemas
-from typing import List
+from typing import List, Optional
 
 
 def get_or_create_project(db: Session, name: str, user_id: int, color: str = "#6366f1") -> models.Project:
@@ -67,7 +67,6 @@ def create_entry(db: Session, entry: schemas.JournalEntryCreate, user_id: int):
         content=entry.content,
         user_id=user_id
     )
-    # Add to session first so relationship appends work without warnings
     db.add(db_entry)
 
     for project_name in entry.project_names:
@@ -77,7 +76,6 @@ def create_entry(db: Session, entry: schemas.JournalEntryCreate, user_id: int):
     db.commit()
     db.refresh(db_entry)
     return db_entry
-
 
 
 def get_entries(db, user_id, skip=0, limit=100):
@@ -121,3 +119,104 @@ def delete_entry(db: Session, entry_id: int, user_id: int):
         db.delete(db_entry)
         db.commit()
     return db_entry
+
+
+# ─── Templates ────────────────────────────────────────────────────────────────
+
+def get_templates(db: Session, user_id: int) -> List[models.Template]:
+    """Get all templates available to a user: their own + all built-ins."""
+    return db.query(models.Template).filter(
+        (models.Template.user_id == user_id) | (models.Template.is_built_in == True)
+    ).order_by(models.Template.is_built_in.desc(), models.Template.name).all()
+
+
+def get_template(db: Session, template_id: int, user_id: int) -> Optional[models.Template]:
+    """Get a single template if user owns it or it is built-in."""
+    return db.query(models.Template).filter(
+        models.Template.id == template_id,
+        (models.Template.user_id == user_id) | (models.Template.is_built_in == True)
+    ).first()
+
+
+def create_template(db: Session, template: schemas.TemplateCreate, user_id: int) -> models.Template:
+    """Create a new template owned by the user."""
+    db_template = models.Template(
+        user_id=user_id,
+        name=template.name,
+        description=template.description,
+        icon=template.icon,
+        content=template.content,
+        tags=template.tags,
+        trigger_conditions=template.trigger_conditions,
+        is_public=template.is_public,
+        is_built_in=False,
+    )
+    db.add(db_template)
+    db.commit()
+    db.refresh(db_template)
+    return db_template
+
+
+def update_template(db: Session, template_id: int, template: schemas.TemplateUpdate, user_id: int) -> Optional[models.Template]:
+    """Update a template (only if user owns it — built-ins cannot be updated)."""
+    db_template = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        models.Template.user_id == user_id,
+        models.Template.is_built_in == False,
+    ).first()
+
+    if db_template:
+        db_template.name = template.name
+        db_template.description = template.description
+        db_template.icon = template.icon
+        db_template.content = template.content
+        db_template.tags = template.tags
+        db_template.trigger_conditions = template.trigger_conditions
+        db_template.is_public = template.is_public
+        db.commit()
+        db.refresh(db_template)
+
+    return db_template
+
+
+def delete_template(db: Session, template_id: int, user_id: int) -> Optional[models.Template]:
+    """Delete a template (only if user owns it — built-ins cannot be deleted)."""
+    db_template = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        models.Template.user_id == user_id,
+        models.Template.is_built_in == False,
+    ).first()
+
+    if db_template:
+        db.delete(db_template)
+        db.commit()
+
+    return db_template
+
+
+def fork_template(db: Session, template_id: int, user_id: int) -> Optional[models.Template]:
+    """Copy a public or built-in template into the user's own collection."""
+    source = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        (models.Template.is_built_in == True) | (models.Template.is_public == True)
+    ).first()
+
+    if not source:
+        return None
+
+    forked = models.Template(
+        user_id=user_id,
+        forked_from_id=source.id,
+        name=source.name,
+        description=source.description,
+        icon=source.icon,
+        content=source.content,
+        tags=list(source.tags) if source.tags else [],
+        trigger_conditions=dict(source.trigger_conditions) if source.trigger_conditions else None,
+        is_public=False,
+        is_built_in=False,
+    )
+    db.add(forked)
+    db.commit()
+    db.refresh(forked)
+    return forked

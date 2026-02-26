@@ -54,6 +54,45 @@ export interface EntryTaskLink {
     created_at: string;
 }
 
+// ── Template types ───────────────────────────────────────────────────────────
+
+export interface Template {
+    id: number;
+    user_id: number | null;
+    forked_from_id: number | null;
+    name: string;
+    description: string | null;
+    icon: string | null;
+    content: string;
+    tags: string[];
+    trigger_conditions: Record<string, unknown> | null;
+    is_public: boolean;
+    is_built_in: boolean;
+    created_at: string;
+}
+
+export interface CreateTemplateInput {
+    name: string;
+    content: string;
+    description?: string;
+    icon?: string;
+    tags?: string[];
+    trigger_conditions?: Record<string, unknown> | null;
+    is_public?: boolean;
+}
+
+export interface UpdateTemplateInput {
+    name?: string;
+    content?: string;
+    description?: string;
+    icon?: string;
+    tags?: string[];
+    trigger_conditions?: Record<string, unknown> | null;
+    is_public?: boolean;
+}
+
+// ── Hook ─────────────────────────────────────────────────────────────────────
+
 export function useApi() {
     const { getToken } = useAuth();
 
@@ -85,6 +124,8 @@ export function useApi() {
 
         return response;
     }
+
+    // ── Entries ──────────────────────────────────────────────────────────────
 
     async function getEntries(): Promise<JournalEntry[]> {
         const res = await fetchWithAuth(`${API_URL}/entries/`);
@@ -118,6 +159,8 @@ export function useApi() {
         });
     }
 
+    // ── Projects ─────────────────────────────────────────────────────────────
+
     async function getProjects(): Promise<Project[]> {
         const res = await fetchWithAuth(`${API_URL}/projects/`);
         return res.json();
@@ -144,6 +187,8 @@ export function useApi() {
         });
         return res.json();
     }
+
+    // ── Todoist ──────────────────────────────────────────────────────────────
 
     async function getTodoistStatus(): Promise<{ connected: boolean }> {
         const res = await fetchWithAuth(`${API_URL}/todoist/status`);
@@ -173,6 +218,8 @@ export function useApi() {
         });
     }
 
+    // ── Entry tasks ──────────────────────────────────────────────────────────
+
     async function getEntryTasks(entryId: number): Promise<EntryTaskLink[]> {
         const res = await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks`);
         return res.json();
@@ -190,6 +237,50 @@ export function useApi() {
         await fetchWithAuth(`${API_URL}/entries/${entryId}/tasks/${todoistTaskId}`, {
             method: 'DELETE',
         });
+    }
+
+    // ── Templates ────────────────────────────────────────────────────────────
+
+    async function getTemplates(): Promise<Template[]> {
+        const res = await fetchWithAuth(`${API_URL}/templates/`);
+        return res.json();
+    }
+
+    async function getTemplate(id: number): Promise<Template> {
+        const res = await fetchWithAuth(`${API_URL}/templates/${id}`);
+        return res.json();
+    }
+
+    async function createTemplate(data: CreateTemplateInput): Promise<Template> {
+        const res = await fetchWithAuth(`${API_URL}/templates/`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    async function updateTemplate(id: number, data: UpdateTemplateInput): Promise<Template> {
+        const res = await fetchWithAuth(`${API_URL}/templates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+        return res.json();
+    }
+
+    async function deleteTemplate(id: number): Promise<void> {
+        await fetchWithAuth(`${API_URL}/templates/${id}`, { method: 'DELETE' });
+    }
+
+    async function forkTemplate(id: number): Promise<Template> {
+        const res = await fetchWithAuth(`${API_URL}/templates/${id}/fork`, {
+            method: 'POST',
+        });
+        return res.json();
+    }
+
+    async function getTemplateSuggestions(): Promise<Template[]> {
+        const res = await fetchWithAuth(`${API_URL}/templates/suggestions`);
+        return res.json();
     }
 
     return {
@@ -210,5 +301,12 @@ export function useApi() {
         getEntryTasks,
         linkTaskToEntry,
         unlinkTaskFromEntry,
+        getTemplates,
+        getTemplate,
+        createTemplate,
+        updateTemplate,
+        deleteTemplate,
+        forkTemplate,
+        getTemplateSuggestions,
     };
 }
