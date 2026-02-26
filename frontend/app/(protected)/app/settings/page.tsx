@@ -7,6 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TemplatesSection } from '@/components/templates-section'
 import { Sun, Moon, Monitor, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApi } from '@/lib/api'
@@ -101,6 +102,12 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="space-y-4">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+              <div className="space-y-4">
                 <Skeleton className="h-6 w-20" />
                 <Skeleton className="h-5 w-80" />
                 <Skeleton className="h-12 w-full" />
@@ -152,6 +159,17 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Templates */}
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Templates</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create and manage reusable entry templates.
+                </p>
+              </div>
+              <TemplatesSection />
+            </div>
+
             {/* Todoist integration */}
             <div className="space-y-4">
               <div>
@@ -167,7 +185,6 @@ export default function SettingsPage() {
                   Checking connection…
                 </div>
               ) : todoistConnected ? (
-                /* Connected state */
                 <div className="flex items-center justify-between rounded-lg border px-4 py-3">
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -188,7 +205,6 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                /* Not connected — token input */
                 <div className="space-y-3">
                   <div className="rounded-lg border px-4 py-3 space-y-3">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
