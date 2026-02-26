@@ -4,7 +4,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import entries, projects, todoist
+from routers import entries, projects, todoist, templates
 
 
 def get_rate_limit_key(request: Request) -> str:
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(entries.router)
 app.include_router(projects.router)
 app.include_router(todoist.router)
+app.include_router(templates.router)
 
 
 @app.get("/health")

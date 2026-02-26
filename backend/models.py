@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Table, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Table, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
@@ -22,6 +22,7 @@ class User(Base):
 
     entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
+    templates = relationship("Template", back_populates="user", cascade="all, delete-orphan")
 
 class Project(Base):
     __tablename__ = "projects"
@@ -59,3 +60,35 @@ class EntryTask(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     entry = relationship("JournalEntry", back_populates="entry_tasks")
+
+
+class Template(Base):
+    """
+    A reusable entry template. Can be user-created, built-in, or forked from another.
+
+    trigger_conditions JSON shape:
+    {
+        "type": "manual" | "project" | "day_of_week" | "time_of_day" | "date_pattern",
+        "project_id": 123,                                  # for type=project
+        "days": [0, 1, 2, 3, 4],                           # for type=day_of_week (Mon=0)
+        "time": "morning" | "evening",                     # for type=time_of_day
+        "date_pattern": "first_of_month" | "last_of_month" # for type=date_pattern
+    }
+    """
+    __tablename__ = "templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)   # NULL for built-ins
+    forked_from_id = Column(Integer, ForeignKey('templates.id'), nullable=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=True)
+    icon = Column(String(10), nullable=True)
+    content = Column(Text, nullable=False)
+    tags = Column(JSON, nullable=False, default=list)
+    trigger_conditions = Column(JSON, nullable=True)
+    is_public = Column(Boolean, nullable=False, default=False, server_default='false')
+    is_built_in = Column(Boolean, nullable=False, default=False, server_default='false')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="templates")
+    forked_from = relationship("Template", remote_side="Template.id")
