@@ -11,3 +11,4 @@ htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+Tasks.md
