@@ -59,10 +59,6 @@ Create `backend/.env` (see `backend/.env.example` for all required vars):
 
 ```env
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your-password
-POSTGRES_DB=postgres
-DB_HOST=localhost
 CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
 CLERK_SECRET_KEY=sk_test_xxxx  # For test token generation
 ALLOWED_ORIGINS=http://localhost:3001
@@ -88,6 +84,12 @@ postgres:
   password: devpassword
   db: journalist
   host: postgres
+
+clerk:
+  jwks_url: https://your-clerk-domain/.well-known/jwks.json
+
+cors:
+  allowed_origins: http://localhost:3001
 EOF
 ```
 
@@ -114,26 +116,35 @@ make stop     # Stop everything at end of day
 
 ### Database migrations
 
-This project uses [Alembic](https://alembic.sqlalchemy.org/) for database schema migrations. The backend automatically runs migrations on startup via `entrypoint.sh`.
+This project uses [yoyo-migrations](https://ollycope.com/software/yoyo/latest/) for database schema migrations. The backend automatically runs migrations on startup via `entrypoint.sh`.
 
-**After first setup or pulling new migrations:**
+Migrations are plain SQL files in `backend/migrations/`:
 
-```bash
-cd backend
-alembic upgrade head
+```
+backend/migrations/
+  0001_initial_schema.sql
+  0002_add_indexes.sql
+  0003_add_templates.sql
+  0004_seed_builtin_templates.sql
 ```
 
 **Creating a new migration:**
 
-When you change `models.py`, generate a migration:
+Add a new numbered SQL file:
+
+```bash
+touch backend/migrations/0005_your_change.sql
+```
+
+Write plain SQL in the file. yoyo tracks which migrations have run and applies any pending ones automatically on the next deploy.
+
+**Running migrations locally:**
 
 ```bash
 cd backend
-alembic revision --autogenerate -m "describe your change"
-alembic upgrade head
+set -a && source .env && set +a
+yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations
 ```
-
-**Migration files** are stored in `backend/migrations/versions/` and should be committed to git.
 
 ### Smoke test
 
@@ -143,7 +154,7 @@ Manually verify the backend is working while `make dev` is running:
 ./scripts/smoke-test.sh
 ```
 
-Checks `/health` returns 200, forged tokens return 401, and missing tokens return 403.
+Checks `/health` returns 200, forged tokens return 401, and missing tokens return 401.
 
 ### Running tests
 
@@ -151,7 +162,7 @@ The backend includes a comprehensive pytest test suite. To run tests:
 
 ```bash
 cd backend
-pip install -r dev.txt
+pip install -r requirements/dev.txt
 pytest
 ```
 
@@ -182,7 +193,8 @@ journalist/
 │   ├── routers/             # API route modules
 │   │   ├── entries.py       # Entry endpoints
 │   │   ├── projects.py      # Project endpoints
-│   │   └── todoist.py       # Todoist integration endpoints
+│   │   ├── todoist.py       # Todoist integration endpoints
+│   │   └── templates.py     # Template endpoints
 │   ├── tests/               # Pytest test suite
 │   │   ├── conftest.py      # Fixtures and test setup
 │   │   ├── test_health.py
@@ -190,13 +202,23 @@ journalist/
 │   │   ├── test_projects.py
 │   │   ├── test_entries.py
 │   │   ├── test_todoist.py
-│   │   └── test_entry_tasks.py
-│   ├── migrations/          # Alembic migrations
-│   ├── requirements.txt     # Production dependencies
-│   ├── dev.txt # Dev dependencies (pytest, etc.)
-│   ├── pytest.ini           # Pytest configuration
+│   │   ├── test_entry_tasks.py
+│   │   ├── test_templates.py
+│   │   └── test_trigger_matcher.py
+│   ├── migrations/          # yoyo SQL migration files
+│   │   ├── 0001_initial_schema.sql
+│   │   ├── 0002_add_indexes.sql
+│   │   ├── 0003_add_templates.sql
+│   │   └── 0004_seed_builtin_templates.sql
+│   ├── utils/               # Shared utilities
+│   │   └── trigger_matcher.py
+│   ├── requirements/
+│   │   ├── prod.txt         # Production dependencies
+│   │   └── dev.txt          # Dev dependencies (pytest, etc.)
+│   ├── pyproject.toml       # Pytest configuration
 │   ├── .env.example         # Required env vars (copy to .env)
-│   ├── entrypoint.sh        # Runs migrations + starts server
+│   ├── scripts/
+│   │   └── entrypoint.sh    # Runs migrations + starts server
 │   └── Dockerfile
 ├── frontend/                 # Next.js frontend
 │   ├── app/                 # App router pages
@@ -209,6 +231,7 @@ journalist/
 │   ├── values.secret.yaml   # Secret overrides (gitignored — create locally)
 │   └── templates/
 │       ├── backend.yaml
+│       ├── backend-secret.yaml
 │       ├── frontend.yaml
 │       └── postgres.yaml
 ├── .vscode/
@@ -278,6 +301,12 @@ postgres:
   password: devpassword
   db: journalist
   host: postgres
+
+clerk:
+  jwks_url: https://your-clerk-domain/.well-known/jwks.json
+
+cors:
+  allowed_origins: http://localhost:3001
 EOF
 ```
 
@@ -336,8 +365,8 @@ make destroy && make init
 - [x] Todoist integration — connect account, view and complete tasks, link tasks to entries
 - [x] Markdown preview/edit toggle in entry editor
 - [x] Link Todoist tasks while writing entries
-- [x] Database migrations with Alembic
-- [ ] Better context menu
+- [x] Database migrations (yoyo — plain SQL files)
+- [x] Template system — backend CRUD, built-in templates, time/day-based triggers
 - [x] Improve frontend performance
 
 ### Up next
@@ -348,6 +377,7 @@ make destroy && make init
 
 **Writing experience**
 
+- [ ] Templates UI — picker in new entry dialog, settings page to manage templates
 - [ ] Entry templates (daily review, weekly review, monthly, yearly)
 - [ ] Writing prompts — surface a random prompt if new entry is idle for 5 seconds
 - [ ] Word count and reading time on entries
