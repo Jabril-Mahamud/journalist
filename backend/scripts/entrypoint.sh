@@ -7,7 +7,7 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 
 echo "Running database migrations..."
-alembic upgrade head
+yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations
 
 echo "Starting server..."
 exec uvicorn main:app --host 0.0.0.0 --port 8001

@@ -50,3 +50,7 @@ spec:
                         secretKeyRef:
                             name: postgres-credentials
                             key: DB_HOST
+                  - name: CLERK_JWKS_URL
+                    value: {{ .Values.clerk.jwks_url }}
+                  - name: ALLOWED_ORIGINS
+                    value: {{ .Values.cors.allowed_origins }}
