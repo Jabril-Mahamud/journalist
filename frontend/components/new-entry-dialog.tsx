@@ -178,7 +178,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
     const [loadingTasks, setLoadingTasks] = React.useState(false)
 
-    const structuredFormRef = React.useRef<StructuredEntryFormHandle>(null)
+    const structuredFormRef = React.useRef<StructuredEntryFormHandle>(null!)
 
     const api = useApi()
     const createEntryMutation = useCreateEntry()
