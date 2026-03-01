@@ -13,7 +13,6 @@ import {
 } from '@/lib/hooks/useTemplates'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -24,8 +23,9 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
+import { TemplateBuilder } from '@/components/template-builder'
+import { parseTemplate } from '@/lib/template-parser'
 import { Pencil, Trash2, Plus, X, ChevronDown, ChevronUp, Lock } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,17 @@ const templateFormSchema = z.object({
 })
 
 type TemplateFormValues = z.infer<typeof templateFormSchema>
+
+// ── Field type badge colours ──────────────────────────────────────────────────
+
+const FIELD_TYPE_COLORS: Record<string, string> = {
+    textarea: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    text: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    stars: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    select: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    number: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    checkbox: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+}
 
 // ── Template form (create / edit) ────────────────────────────────────────────
 
@@ -119,12 +130,11 @@ function TemplateForm({
                     name="content"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Content</FormLabel>
+                            <FormLabel>Template</FormLabel>
                             <FormControl>
-                                <Textarea
-                                    placeholder="Write your template in markdown..."
-                                    className="min-h-[180px] font-mono text-sm resize-none"
-                                    {...field}
+                                <TemplateBuilder
+                                    value={field.value}
+                                    onChange={field.onChange}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -142,6 +152,39 @@ function TemplateForm({
                 </div>
             </form>
         </Form>
+    )
+}
+
+// ── Field badges preview ──────────────────────────────────────────────────────
+
+function TemplateBadges({ content }: { content: string }) {
+    const blocks = React.useMemo(() => {
+        try {
+            return parseTemplate(content)
+        } catch {
+            return []
+        }
+    }, [content])
+
+    const fieldBlocks = blocks.filter((b) => b.kind === 'field')
+    if (fieldBlocks.length === 0) return null
+
+    return (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+            {fieldBlocks.map((block, i) => {
+                if (block.kind !== 'field') return null
+                const colorClass = FIELD_TYPE_COLORS[block.type] ?? 'bg-muted text-muted-foreground'
+                return (
+                    <span
+                        key={i}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${colorClass}`}
+                    >
+                        <span className="opacity-60 uppercase tracking-wide text-[9px]">{block.type}</span>
+                        <span>{block.label}</span>
+                    </span>
+                )
+            })}
+        </div>
     )
 }
 
@@ -171,6 +214,7 @@ function TemplateRow({ template, onEdit, onDelete, isDeleting }: TemplateRowProp
                     {template.description && (
                         <p className="text-xs text-muted-foreground truncate">{template.description}</p>
                     )}
+                    <TemplateBadges content={template.content} />
                 </div>
                 {template.is_built_in && (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground border rounded-md px-2 py-0.5 shrink-0">
