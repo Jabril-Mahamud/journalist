@@ -30,10 +30,13 @@ import { useTemplates } from "@/lib/hooks/useTemplates"
 import { parseTemplate, defaultValues, assembleMarkdown } from "@/lib/template-parser"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { ChevronLeft, Sparkles, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { format, startOfToday } from "date-fns"
 import ReactMarkdown from "react-markdown"
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -44,6 +47,38 @@ const formSchema = z.object({
     project_names: z.array(z.string()),
 })
 
+// ─── Task helpers ─────────────────────────────────────────────────────────────
+
+function groupTasksForPicker(tasks: TodoistTask[]): {
+    todayTasks: TodoistTask[]
+    otherTasks: TodoistTask[]
+} {
+    const today = format(new Date(), "yyyy-MM-dd")
+    const todayTasks = tasks
+        .filter((t) => t.due?.date === today)
+        .sort((a, b) => a.content.localeCompare(b.content))
+    const otherTasks = tasks
+        .filter((t) => t.due?.date !== today)
+        .sort((a, b) => {
+            if (!a.due && !b.due) return a.content.localeCompare(b.content)
+            if (!a.due) return 1
+            if (!b.due) return -1
+            return a.due.date.localeCompare(b.due.date)
+        })
+    return { todayTasks, otherTasks }
+}
+
+function formatTaskDue(due: TodoistTask["due"]): { label: string; overdue: boolean } | null {
+    if (!due) return null
+    const date = new Date(due.date + "T00:00:00")
+    const today = startOfToday()
+    const diff = Math.round((date.getTime() - today.getTime()) / 86400000)
+    if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, overdue: true }
+    if (diff === 0) return { label: "Today", overdue: false }
+    if (diff === 1) return { label: "Tomorrow", overdue: false }
+    return { label: due.string, overdue: false }
+}
+
 // ─── Step 1: Template Picker ──────────────────────────────────────────────────
 
 interface TemplatePickerProps {
@@ -53,12 +88,7 @@ interface TemplatePickerProps {
     onSelect: (template: Template | null) => void
 }
 
-function TemplatePicker({
-    suggestions,
-    allTemplates,
-    isLoading,
-    onSelect,
-}: TemplatePickerProps) {
+function TemplatePicker({ suggestions, allTemplates, isLoading, onSelect }: TemplatePickerProps) {
     if (isLoading) {
         return (
             <div className="space-y-3 py-2">
@@ -104,7 +134,6 @@ function TemplatePicker({
 
     return (
         <div className="space-y-5">
-            {/* Blank entry option */}
             <button
                 type="button"
                 onClick={() => onSelect(null)}
@@ -117,7 +146,6 @@ function TemplatePicker({
                 </div>
             </button>
 
-            {/* Suggested templates */}
             {suggestions.length > 0 && (
                 <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -129,7 +157,6 @@ function TemplatePicker({
                 </div>
             )}
 
-            {/* My templates */}
             {myTemplates.length > 0 && (
                 <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -141,7 +168,6 @@ function TemplatePicker({
                 </div>
             )}
 
-            {/* Built-in templates */}
             {builtInTemplates.length > 0 && (
                 <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -152,6 +178,47 @@ function TemplatePicker({
                     ))}
                 </div>
             )}
+        </div>
+    )
+}
+
+// ─── Task Item ────────────────────────────────────────────────────────────────
+
+function TaskItem({
+    task,
+    checked,
+    onToggle,
+}: {
+    task: TodoistTask
+    checked: boolean
+    onToggle: () => void
+}) {
+    const due = formatTaskDue(task.due)
+    const id = `task-${task.id}`
+    return (
+        <div className="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 hover:bg-muted/50">
+            <Checkbox id={id} checked={checked} onCheckedChange={onToggle} />
+            <Label
+                htmlFor={id}
+                className="flex flex-1 items-center justify-between gap-2 cursor-pointer font-normal"
+            >
+                <span className="text-sm leading-snug">{task.content}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                    {due && (
+                        <span className={cn(
+                            "text-xs",
+                            due.overdue ? "text-red-500" : "text-muted-foreground"
+                        )}>
+                            {due.label}
+                        </span>
+                    )}
+                    {task.project_name && (
+                        <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0">
+                            {task.project_name}
+                        </Badge>
+                    )}
+                </div>
+            </Label>
         </div>
     )
 }
@@ -189,7 +256,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         defaultValues: { title: "", content: "", project_names: [] },
     })
 
-    // Reset everything when dialog opens
     React.useEffect(() => {
         if (open) {
             setStep('pick-template')
@@ -225,12 +291,10 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
 
     const handleTemplateSelect = (template: Template | null) => {
         setSelectedTemplate(template)
-
         if (template) {
             const blocks = parseTemplate(template.content)
             setTemplateValues(defaultValues(blocks))
         }
-
         setStep('write')
     }
 
@@ -245,7 +309,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         let content = values.content
 
-        // If using a structured template, assemble the content from field values
         if (selectedTemplate) {
             const blocks = parseTemplate(selectedTemplate.content)
             content = assembleMarkdown(blocks, templateValues)
@@ -256,10 +319,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         }
 
         try {
-            const newEntry = await createEntryMutation.mutateAsync({
-                ...values,
-                content,
-            })
+            const newEntry = await createEntryMutation.mutateAsync({ ...values, content })
             for (const taskId of selectedTaskIds) {
                 await api.linkTaskToEntry(newEntry.id, taskId)
             }
@@ -272,14 +332,17 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         }
     }
 
-    // Derived state
     const isStructured = !!selectedTemplate
     const templateBlocks = React.useMemo(
         () => (selectedTemplate ? parseTemplate(selectedTemplate.content) : []),
         [selectedTemplate]
     )
-
     const isLoading = templatesLoading || suggestionsLoading
+
+    const { todayTasks, otherTasks } = React.useMemo(
+        () => groupTasksForPicker(todoistTasks),
+        [todoistTasks]
+    )
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -301,9 +364,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                             <DialogTitle className="text-2xl">
                                 {step === 'pick-template'
                                     ? 'New Entry'
-                                    : selectedTemplate
-                                        ? selectedTemplate.name
-                                        : 'New Entry'}
+                                    : selectedTemplate?.name ?? 'New Entry'}
                             </DialogTitle>
                             <DialogDescription>
                                 {step === 'pick-template'
@@ -413,28 +474,60 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                             />
 
                             {/* Todoist task linking */}
-                            {todoistConnected && todoistTasks.length > 0 && (
-                                <div className="space-y-3">
-                                    <FormLabel>Link Tasks</FormLabel>
-                                    <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
+                            {todoistConnected && (loadingTasks || todoistTasks.length > 0) && (
+                                <div className="space-y-2">
+                                    <FormLabel>Tasks</FormLabel>
+                                    <div className="border rounded-md overflow-hidden">
                                         {loadingTasks ? (
-                                            <span className="text-muted-foreground text-sm">Loading tasks...</span>
+                                            <div className="px-3 py-3 text-sm text-muted-foreground">
+                                                Loading tasks…
+                                            </div>
                                         ) : (
-                                            todoistTasks.map(task => (
-                                                <label
-                                                    key={task.id}
-                                                    className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-1 rounded"
-                                                >
-                                                    <Checkbox
-                                                        checked={selectedTaskIds.has(task.id)}
-                                                        onCheckedChange={() => toggleTask(task.id)}
-                                                    />
-                                                    <span className="text-sm flex-1">{task.content}</span>
-                                                    {task.project_name && (
-                                                        <span className="text-xs text-muted-foreground">{task.project_name}</span>
-                                                    )}
-                                                </label>
-                                            ))
+                                            <div className="max-h-[220px] overflow-y-auto">
+                                                {/* Today group */}
+                                                {todayTasks.length > 0 && (
+                                                    <div>
+                                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 sticky top-0">
+                                                            <span className="text-xs font-semibold text-primary">Today</span>
+                                                            <Separator className="flex-1 bg-primary/20" />
+                                                        </div>
+                                                        {todayTasks.map((task) => (
+                                                            <TaskItem
+                                                                key={task.id}
+                                                                task={task}
+                                                                checked={selectedTaskIds.has(task.id)}
+                                                                onToggle={() => toggleTask(task.id)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Upcoming group */}
+                                                {otherTasks.length > 0 && (
+                                                    <div>
+                                                        {todayTasks.length > 0 && (
+                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 sticky top-0">
+                                                                <span className="text-xs font-semibold text-muted-foreground">Upcoming</span>
+                                                                <Separator className="flex-1" />
+                                                            </div>
+                                                        )}
+                                                        {otherTasks.map((task) => (
+                                                            <TaskItem
+                                                                key={task.id}
+                                                                task={task}
+                                                                checked={selectedTaskIds.has(task.id)}
+                                                                onToggle={() => toggleTask(task.id)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {todayTasks.length === 0 && otherTasks.length === 0 && (
+                                                    <div className="px-3 py-3 text-sm text-muted-foreground">
+                                                        No open tasks.
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
