@@ -43,7 +43,6 @@ import {
 import {
     parseTemplate,
     blocksToRaw,
-    TemplateBlock,
     FieldBlock,
     FieldType,
 } from '@/lib/template-parser'
@@ -285,7 +284,7 @@ function SyntaxCheatsheet() {
                     <p>::textarea[Label]</p>
                     <p>::text[Label]</p>
                     <p>::stars[Label]</p>
-                    <p>::select[Label]&#123;options="a,b,c"&#125;</p>
+                    <p>::select[Label]&#123;options=&quot;a,b,c&quot;&#125;</p>
                     <p>::number[Label]</p>
                     <p>::checkbox[Label]</p>
                     <p className="text-muted-foreground pt-1">

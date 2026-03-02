@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { JournalEntry } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -59,15 +59,6 @@ function getCellBg(count: number): string {
   if (count === 2) return 'hsl(0 72% 51% / 0.45)';
   if (count === 3) return 'hsl(0 72% 51% / 0.65)';
   return 'hsl(0 72% 51% / 0.88)';
-}
-
-// Dark mode versions
-function getCellBgDark(count: number): string {
-  if (count === 0) return 'hsl(0 0% 100% / 0.06)';
-  if (count === 1) return 'hsl(0 72% 51% / 0.3)';
-  if (count === 2) return 'hsl(0 72% 51% / 0.5)';
-  if (count === 3) return 'hsl(0 72% 51% / 0.7)';
-  return 'hsl(0 72% 51% / 0.9)';
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
