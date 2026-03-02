@@ -67,6 +67,9 @@ class TodoistTask(BaseModel):
     project_name: Optional[str] = None
     url: str = ""
 
+class TodoistReschedule(BaseModel):
+    due_date: str = Field(pattern=r'^\d{4}-\d{2}-\d{2}$')
+
 class EntryTaskLink(BaseModel):
     todoist_task_id: str
 
