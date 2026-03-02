@@ -256,17 +256,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         defaultValues: { title: "", content: "", project_names: [] },
     })
 
-    React.useEffect(() => {
-        if (open) {
-            setStep('pick-template')
-            setSelectedTemplate(undefined)
-            setTemplateValues({})
-            form.reset()
-            setSelectedTaskIds(new Set())
-            loadInitialData()
-        }
-    }, [open])
-
     const loadInitialData = async () => {
         setSuggestionsLoading(true)
         try {
@@ -289,6 +278,17 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         }
     }
 
+    React.useEffect(() => {
+        if (open) {
+            setStep('pick-template')
+            setSelectedTemplate(undefined)
+            setTemplateValues({})
+            form.reset()
+            setSelectedTaskIds(new Set())
+            loadInitialData()
+        }
+    }, [open, form, loadInitialData])
+
     const handleTemplateSelect = (template: Template | null) => {
         setSelectedTemplate(template)
         if (template) {
@@ -301,7 +301,11 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const toggleTask = (taskId: string) => {
         setSelectedTaskIds(prev => {
             const next = new Set(prev)
-            next.has(taskId) ? next.delete(taskId) : next.add(taskId)
+            if (next.has(taskId)) {
+                next.delete(taskId)
+            } else {
+                next.add(taskId)
+            }
             return next
         })
     }
