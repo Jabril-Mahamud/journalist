@@ -64,27 +64,6 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         },
     })
 
-    React.useEffect(() => {
-        if (open && isEditing) {
-            loadTodoistData()
-        }
-    }, [open, isEditing])
-
-    React.useEffect(() => {
-        if (entry) {
-            form.reset({
-                title: entry.title,
-                content: entry.content,
-                project_names: entry.projects.map(p => p.name),
-            })
-            if (isEditing) {
-                loadLinkedTasks()
-            }
-        }
-        setIsEditing(false)
-        setSelectedTaskIds(new Set())
-    }, [entry, form])
-
     const loadTodoistData = async () => {
         try {
             const status = await api.getTodoistStatus()
@@ -110,6 +89,27 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
             console.error("Error loading linked tasks:", error)
         }
     }
+
+    React.useEffect(() => {
+        if (open && isEditing) {
+            loadTodoistData()
+        }
+    }, [open, isEditing, loadTodoistData])
+
+    React.useEffect(() => {
+        if (entry) {
+            form.reset({
+                title: entry.title,
+                content: entry.content,
+                project_names: entry.projects.map(p => p.name),
+            })
+            if (isEditing) {
+                loadLinkedTasks()
+            }
+        }
+        setIsEditing(false)
+        setSelectedTaskIds(new Set())
+    }, [entry, form, isEditing, loadLinkedTasks])
 
     const toggleTask = (taskId: string) => {
         setSelectedTaskIds(prev => {

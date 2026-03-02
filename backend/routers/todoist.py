@@ -48,7 +48,7 @@ def save_todoist_token(
         raise HTTPException(status_code=400, detail="Invalid Todoist API token")
     if not resp.ok:
         raise HTTPException(
-            status_code=502, 
+            status_code=502,
             detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
         )
     current_user.todoist_token = body.token
@@ -79,7 +79,7 @@ def get_todoist_tasks(
     )
     if not resp.ok:
         raise HTTPException(
-            status_code=502, 
+            status_code=502,
             detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
         )
 
@@ -130,7 +130,34 @@ def close_todoist_task(
         raise HTTPException(status_code=404, detail="Task not found in Todoist")
     if not resp.ok:
         raise HTTPException(
-            status_code=502, 
+            status_code=502,
             detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
         )
     return {"closed": True}
+
+
+@router.patch("/tasks/{task_id}/reschedule")
+@limiter.limit("60/minute")
+def reschedule_todoist_task(
+    request: Request,
+    task_id: str,
+    body: schemas.TodoistReschedule,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Update a task's due date. Body: { "due_date": "YYYY-MM-DD" }"""
+    token = _get_todoist_token(current_user)
+
+    resp = http_requests.post(
+        f"{TODOIST_API}/tasks/{task_id}",
+        headers=_todoist_headers(token),
+        json={"due_date": body.due_date},
+        timeout=10,
+    )
+    if resp.status_code == 404:
+        raise HTTPException(status_code=404, detail="Task not found in Todoist")
+    if not resp.ok:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+        )
+    return {"rescheduled": True, "due_date": body.due_date}
