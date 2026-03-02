@@ -29,6 +29,10 @@ The end goal is a **journaling app that syncs with Todoist**, so your daily refl
 - [Python 3.11+](https://www.python.org/downloads/)
 
 ```bash
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+
 # Install Helm
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
@@ -60,7 +64,7 @@ Create `backend/.env` (see `backend/.env.example` for all required vars):
 ```env
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres
 CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
-CLERK_SECRET_KEY=sk_test_xxxx  # For test token generation
+CLERK_SECRET_KEY=sk_test_xxxx
 ALLOWED_ORIGINS=http://localhost:3001
 TODOIST_TOKEN=your-todoist-api-token  # Optional, for testing
 ```
@@ -126,14 +130,13 @@ backend/migrations/
   0002_add_indexes.sql
   0003_add_templates.sql
   0004_seed_builtin_templates.sql
+  0005_update_builtin_templates.sql   # Updates built-ins to use structured syntax
 ```
 
 **Creating a new migration:**
 
-Add a new numbered SQL file:
-
 ```bash
-touch backend/migrations/0005_your_change.sql
+touch backend/migrations/0006_your_change.sql
 ```
 
 Write plain SQL in the file. yoyo tracks which migrations have run and applies any pending ones automatically on the next deploy.
@@ -154,11 +157,7 @@ Manually verify the backend is working while `make dev` is running:
 ./scripts/smoke-test.sh
 ```
 
-Checks `/health` returns 200, forged tokens return 401, and missing tokens return 401.
-
 ### Running tests
-
-The backend includes a comprehensive pytest test suite. To run tests:
 
 ```bash
 cd backend
@@ -166,7 +165,7 @@ pip install -r requirements/dev.txt
 pytest
 ```
 
-Tests use an in-memory SQLite database by default (no external dependencies). For testing against a real database, set `TEST_DATABASE_URL` in your environment.
+Tests use an in-memory SQLite database by default (no external dependencies).
 
 ### Other commands
 
@@ -176,6 +175,68 @@ make logs-fe  # Frontend logs
 make status   # Check pods and port forwarding
 make destroy  # Nuclear option — deletes the entire cluster
 ```
+
+---
+
+## Template System
+
+Templates use a custom field syntax that gets parsed into interactive form fields when creating an entry. On save, all fields assemble into a single markdown string stored in the entry's `content` column.
+
+### Field syntax
+
+```
+::type[Label]{options}
+```
+
+Any line that doesn't match this pattern is treated as static markdown and passed through as-is.
+
+### Supported field types
+
+| Type | Description | Markdown output |
+|------|-------------|-----------------|
+| `::textarea[Label]` | Large freetext box | Raw text, no label |
+| `::text[Label]` | Single line input | `**Label:** value` |
+| `::stars[Label]` | 1–5 star rating | `**Label:** ⭐⭐⭐⭐` |
+| `::select[Label]{options="a,b,c"}` | Dropdown with free-type fallback | `**Label:** value` |
+| `::number[Label]` | Number input | `**Label:** value` |
+| `::checkbox[Label]` | Toggle | `**Label:** Yes / No` |
+
+### Example template
+
+```markdown
+## {{date}}
+
+::stars[Energy Level]
+
+::select[Day Type]{options="rest,push,work,recovery"}
+
+::textarea[Journal]
+
+::text[Focus for tomorrow]
+```
+
+Assembled entry output:
+
+```markdown
+## Monday 2nd June
+
+**Energy Level:** ⭐⭐⭐⭐
+
+**Day Type:** Push
+
+Had a solid session today, shipped the template feature...
+
+**Focus for tomorrow:** Write tests
+```
+
+### Building templates
+
+Templates are created and managed in **Settings → Templates**. The builder has two modes:
+
+- **Visual** — drag-and-drop field editor, add fields from a picker
+- **Raw** — edit the syntax directly as plain text
+
+Switching between modes syncs the content both ways. Users can always override a `select` field by typing a custom value — nothing enforces the options strictly.
 
 ---
 
@@ -206,40 +267,33 @@ journalist/
 │   │   ├── test_templates.py
 │   │   └── test_trigger_matcher.py
 │   ├── migrations/          # yoyo SQL migration files
-│   │   ├── 0001_initial_schema.sql
-│   │   ├── 0002_add_indexes.sql
-│   │   ├── 0003_add_templates.sql
-│   │   └── 0004_seed_builtin_templates.sql
-│   ├── utils/               # Shared utilities
+│   ├── utils/
 │   │   └── trigger_matcher.py
 │   ├── requirements/
-│   │   ├── prod.txt         # Production dependencies
-│   │   └── dev.txt          # Dev dependencies (pytest, etc.)
-│   ├── pyproject.toml       # Pytest configuration
-│   ├── .env.example         # Required env vars (copy to .env)
-│   ├── scripts/
-│   │   └── entrypoint.sh    # Runs migrations + starts server
+│   │   ├── prod.txt
+│   │   └── dev.txt
+│   ├── pyproject.toml
+│   ├── .env.example
 │   └── Dockerfile
 ├── frontend/                 # Next.js frontend
 │   ├── app/                 # App router pages
 │   ├── components/          # React components
-│   ├── lib/                 # API client + hooks
+│   │   ├── template-builder.tsx      # Visual + raw template editor
+│   │   └── structured-entry-form.tsx # Renders template fields on entry creation
+│   ├── lib/
+│   │   ├── api.ts           # API client
+│   │   ├── template-parser.ts        # Parses ::type[Label] syntax
+│   │   └── hooks/
 │   └── Dockerfile
 ├── journalist/               # Helm chart
 │   ├── Chart.yaml
-│   ├── values.yaml          # Non-secret defaults
-│   ├── values.secret.yaml   # Secret overrides (gitignored — create locally)
+│   ├── values.yaml
+│   ├── values.secret.yaml   # Gitignored — create locally
 │   └── templates/
-│       ├── backend.yaml
-│       ├── backend-secret.yaml
-│       ├── frontend.yaml
-│       └── postgres.yaml
-├── .vscode/
-│   └── settings.json        # K8s YAML, indent-rainbow, and .git visibility config
 ├── scripts/
-│   ├── install-hooks.sh     # Run once after cloning to install git hooks
-│   ├── pre-push.sh          # Reference copy of the pre-push hook
-│   ├── smoke-test.sh        # Manual backend smoke test
+│   ├── install-hooks.sh
+│   ├── pre-push.sh
+│   ├── smoke-test.sh
 │   └── port-forward.sh
 └── Makefile
 ```
@@ -310,6 +364,17 @@ cors:
 EOF
 ```
 
+**kubectl or helm not found**
+
+```bash
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+
+# helm
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
 **Cluster not found**
 
 ```bash
@@ -367,7 +432,17 @@ make destroy && make init
 - [x] Link Todoist tasks while writing entries
 - [x] Database migrations (yoyo — plain SQL files)
 - [x] Template system — backend CRUD, built-in templates, time/day-based triggers
-- [x] Improve frontend performance
+
+### In progress
+
+**Template rework**
+
+- [ ] Template field syntax (`::type[Label]{options}`)
+- [ ] Template parser + markdown assembler (`frontend/lib/template-parser.ts`)
+- [ ] Structured entry form — renders typed fields on entry creation
+- [ ] Template picker in new entry dialog (with suggestions)
+- [ ] Visual + raw template builder with drag-to-reorder fields
+- [ ] Update built-in templates to use structured syntax
 
 ### Up next
 
@@ -377,8 +452,6 @@ make destroy && make init
 
 **Writing experience**
 
-- [ ] Templates UI — picker in new entry dialog, settings page to manage templates
-- [ ] Entry templates (daily review, weekly review, monthly, yearly)
 - [ ] Writing prompts — surface a random prompt if new entry is idle for 5 seconds
 - [ ] Word count and reading time on entries
 - [ ] Draft autosave to localStorage if dialog is closed mid-write
@@ -396,7 +469,7 @@ make destroy && make init
 
 **Data ownership**
 
-- [ ] Export — download all entries as individual markdown files or a single JSON (most important missing feature for user trust)
+- [ ] Export — download all entries as individual markdown files or a single JSON
 
 ---
 

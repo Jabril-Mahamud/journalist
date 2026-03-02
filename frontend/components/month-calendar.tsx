@@ -33,7 +33,7 @@ export function MonthCalendar({
       className="w-full [&_.rdp-months]:w-full [&_table]:w-full [&_td]:p-0"
       modifiers={{ hasEntry: (date) => entryDates.has(date.toDateString()) }}
       components={{
-        DayButton: ({ day, modifiers, className, ...props }) => {
+        DayButton: ({ day, className, ...props }) => {
           const hasEntry = entryDates.has(day.date.toDateString())
           return (
             <div className="relative w-full h-full flex items-center justify-center">

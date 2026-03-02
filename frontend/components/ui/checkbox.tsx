@@ -9,11 +9,7 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
 }
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, onCheckedChange, checked, ...props }, ref) => {
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onCheckedChange?.(e.target.checked)
-    }
-
+  ({ className, onCheckedChange, checked }) => {
     return (
       <button
         type="button"

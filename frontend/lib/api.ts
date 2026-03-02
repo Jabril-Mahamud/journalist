@@ -283,6 +283,14 @@ export function useApi() {
         return res.json();
     }
 
+    async function rescheduleTask(taskId: string, dueDate: string): Promise<void> {
+        await fetchWithAuth(`${API_URL}/todoist/tasks/${taskId}/reschedule`, {
+            method: 'PATCH',
+            body: JSON.stringify({ due_date: dueDate }),
+        });
+    }
+
+
     return {
         getEntries,
         getEntry,
@@ -308,5 +316,6 @@ export function useApi() {
         deleteTemplate,
         forkTemplate,
         getTemplateSuggestions,
+        rescheduleTask,
     };
 }

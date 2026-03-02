@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { JournalEntry } from '@/lib/api'
 import { useEntries } from '@/lib/hooks/useEntries'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -8,8 +8,7 @@ import { EntryDialog } from '@/components/entry-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/use-local-storage'
-import { ChevronLeft, ChevronRight, CalendarDays, BookOpen, Flame } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import { ChevronLeft, ChevronRight, CalendarDays, Flame } from 'lucide-react'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
