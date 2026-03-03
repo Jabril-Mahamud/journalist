@@ -287,7 +287,8 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
             setSelectedTaskIds(new Set())
             loadInitialData()
         }
-    }, [open, form, loadInitialData])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open])
 
     const handleTemplateSelect = (template: Template | null) => {
         setSelectedTemplate(template)
