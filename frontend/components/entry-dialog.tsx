@@ -94,7 +94,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         if (open && isEditing) {
             loadTodoistData()
         }
-    }, [open, isEditing, loadTodoistData])
+    }, [open, isEditing])
 
     React.useEffect(() => {
         if (entry) {
@@ -109,7 +109,8 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         }
         setIsEditing(false)
         setSelectedTaskIds(new Set())
-    }, [entry, form, isEditing, loadLinkedTasks])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [entry])
 
     const toggleTask = (taskId: string) => {
         setSelectedTaskIds(prev => {
