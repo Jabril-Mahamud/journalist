@@ -7,14 +7,8 @@
  * Each TemplateBlock becomes a typed input control; static blocks
  * are rendered as read-only markdown.
  *
- * Usage:
- *   const blocks = parseTemplate(template.content)
- *   <StructuredEntryForm
- *     blocks={blocks}
- *     values={values}
- *     onChange={setValues}
- *   />
- *   // On submit: assembleMarkdown(blocks, values)
+ * Row blocks render their fields side-by-side in a flex row.
+ * Textarea fields always render full-width.
  */
 
 import * as React from 'react'
@@ -77,7 +71,6 @@ interface SelectWithOtherProps {
 }
 
 function SelectWithOther({ options, value, onChange, label }: SelectWithOtherProps) {
-  // Determine if the current value is one of the defined options
   const isPreset = options.some((o) => o.toLowerCase() === value.toLowerCase())
   const [showOther, setShowOther] = React.useState(!isPreset && value !== '')
 
@@ -122,7 +115,7 @@ function SelectWithOther({ options, value, onChange, label }: SelectWithOtherPro
   )
 }
 
-// ─── Single field renderer ────────────────────────────────────────────────────
+// ─── Single field control ─────────────────────────────────────────────────────
 
 interface FieldControlProps {
   block: FieldBlock
@@ -203,6 +196,47 @@ function FieldControl({ block, value, onChange }: FieldControlProps) {
   }
 }
 
+// ─── Field with label wrapper ─────────────────────────────────────────────────
+
+interface FieldWithLabelProps {
+  block: FieldBlock
+  value: string
+  onChange: (value: string) => void
+  /** When true, adds flex-1 so the field expands to fill row space */
+  flex?: boolean
+}
+
+function FieldWithLabel({ block, value, onChange, flex }: FieldWithLabelProps) {
+  const id = `field-${block.label.replace(/\s+/g, '-').toLowerCase()}`
+
+  // checkbox renders its own label inline
+  if (block.type === 'checkbox') {
+    return (
+      <div className={cn('py-1', flex && 'flex-1')}>
+        <FieldControl block={block} value={value} onChange={onChange} />
+      </div>
+    )
+  }
+
+  // textarea: no label wrapper
+  if (block.type === 'textarea') {
+    return (
+      <div className={flex ? 'flex-1' : undefined}>
+        <FieldControl block={block} value={value} onChange={onChange} />
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn('space-y-1.5', flex && 'flex-1 min-w-0')}>
+      <Label htmlFor={id} className="text-sm font-medium">
+        {block.label}
+      </Label>
+      <FieldControl block={block} value={value} onChange={onChange} />
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export interface StructuredEntryFormProps {
@@ -223,7 +257,6 @@ export function StructuredEntryForm({
   onChange,
   formRef,
 }: StructuredEntryFormProps) {
-  // Expose getMarkdown to parent via imperative handle
   React.useImperativeHandle(formRef, () => ({
     getMarkdown: () => assembleMarkdown(blocks, values),
   }))
@@ -235,8 +268,8 @@ export function StructuredEntryForm({
   return (
     <div className="space-y-4">
       {blocks.map((block, index) => {
+        // ── Static block ─────────────────────────────────────────────────────
         if (block.kind === 'static') {
-          // Blank lines become spacers; non-blank static lines render as markdown
           if (!block.raw.trim()) {
             return <div key={index} className="h-1" />
           }
@@ -250,47 +283,31 @@ export function StructuredEntryForm({
           )
         }
 
-        // checkbox: rendered inline (label is part of the control)
-        if (block.type === 'checkbox') {
+        // ── Row block — fields side by side ──────────────────────────────────
+        if (block.kind === 'row') {
           return (
-            <div key={index} className="py-1">
-              <FieldControl
-                block={block}
-                value={values[block.label] ?? ''}
-                onChange={(v) => handleFieldChange(block.label, v)}
-              />
+            <div key={index} className="flex gap-4 flex-wrap">
+              {block.fields.map((field) => (
+                <FieldWithLabel
+                  key={field.label}
+                  block={field}
+                  value={values[field.label] ?? ''}
+                  onChange={(v) => handleFieldChange(field.label, v)}
+                  flex
+                />
+              ))}
             </div>
           )
         }
 
-        // textarea: no label wrapper — it's the main content area
-        if (block.type === 'textarea') {
-          return (
-            <div key={index}>
-              <FieldControl
-                block={block}
-                value={values[block.label] ?? ''}
-                onChange={(v) => handleFieldChange(block.label, v)}
-              />
-            </div>
-          )
-        }
-
-        // All other field types: label above control
+        // ── Single field block ────────────────────────────────────────────────
         return (
-          <div key={index} className="space-y-1.5">
-            <Label
-              htmlFor={`field-${block.label.replace(/\s+/g, '-').toLowerCase()}`}
-              className="text-sm font-medium"
-            >
-              {block.label}
-            </Label>
-            <FieldControl
-              block={block}
-              value={values[block.label] ?? ''}
-              onChange={(v) => handleFieldChange(block.label, v)}
-            />
-          </div>
+          <FieldWithLabel
+            key={index}
+            block={block}
+            value={values[block.label] ?? ''}
+            onChange={(v) => handleFieldChange(block.label, v)}
+          />
         )
       })}
     </div>

@@ -7,7 +7,8 @@
  *   Visual — drag-and-drop field list + add-field panel
  *   Raw    — plain textarea showing/editing the raw syntax directly
  *
- * Switching tabs syncs content both ways via parseTemplate / blocksToRaw.
+ * Row blocks (::field | ::field) are shown as inert inline previews
+ * in the Visual tab with a note to edit them in Raw.
  */
 
 import * as React from 'react'
@@ -46,7 +47,7 @@ import {
     FieldBlock,
     FieldType,
 } from '@/lib/template-parser'
-import { GripVertical, Trash2, Plus, Code, Eye, ChevronDown, ChevronUp } from 'lucide-react'
+import { GripVertical, Trash2, Plus, Code, Eye, ChevronDown, ChevronUp, Rows2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -110,7 +111,6 @@ function SortableFieldRow({ id, block, onDelete }: SortableFieldRowProps) {
                 isDragging && 'shadow-lg'
             )}
         >
-            {/* Drag handle */}
             <button
                 type="button"
                 className="cursor-grab touch-none text-muted-foreground hover:text-foreground shrink-0"
@@ -121,7 +121,6 @@ function SortableFieldRow({ id, block, onDelete }: SortableFieldRowProps) {
                 <GripVertical className="h-4 w-4" />
             </button>
 
-            {/* Type badge */}
             <span
                 className={cn(
                     'text-xs font-medium rounded px-1.5 py-0.5 shrink-0',
@@ -131,17 +130,14 @@ function SortableFieldRow({ id, block, onDelete }: SortableFieldRowProps) {
                 {block.type}
             </span>
 
-            {/* Label */}
             <span className="flex-1 text-sm truncate">{block.label}</span>
 
-            {/* Options preview for select */}
             {block.type === 'select' && block.options.length > 0 && (
                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
                     {block.options.join(', ')}
                 </span>
             )}
 
-            {/* Delete */}
             <Button
                 type="button"
                 variant="ghost"
@@ -164,6 +160,36 @@ function StaticBlockRow({ raw }: { raw: string }) {
         <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/20 px-3 py-2">
             <Code className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-xs text-muted-foreground font-mono truncate">{raw}</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+                (edit in Raw tab)
+            </span>
+        </div>
+    )
+}
+
+// ─── Row block preview ────────────────────────────────────────────────────────
+
+interface RowBlockPreviewProps {
+    fields: FieldBlock[]
+}
+
+function RowBlockPreview({ fields }: RowBlockPreviewProps) {
+    return (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/20 px-3 py-2">
+            <Rows2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="flex flex-wrap gap-1.5 flex-1">
+                {fields.map((f) => (
+                    <span
+                        key={f.label}
+                        className={cn(
+                            'text-xs font-medium rounded px-1.5 py-0.5',
+                            TYPE_BADGES[f.type]
+                        )}
+                    >
+                        {f.type}: {f.label}
+                    </span>
+                ))}
+            </div>
             <span className="text-xs text-muted-foreground shrink-0">
                 (edit in Raw tab)
             </span>
@@ -196,7 +222,6 @@ function AddFieldPanel({ onAdd, onCancel }: AddFieldPanelProps) {
             <p className="text-sm font-medium">Add a field</p>
 
             <div className="grid grid-cols-2 gap-3">
-                {/* Type picker */}
                 <div className="space-y-1.5">
                     <Label className="text-xs">Type</Label>
                     <Select value={type} onValueChange={(v) => setType(v as FieldType)}>
@@ -213,7 +238,6 @@ function AddFieldPanel({ onAdd, onCancel }: AddFieldPanelProps) {
                     </Select>
                 </div>
 
-                {/* Label */}
                 <div className="space-y-1.5">
                     <Label className="text-xs">Label</Label>
                     <Input
@@ -226,7 +250,6 @@ function AddFieldPanel({ onAdd, onCancel }: AddFieldPanelProps) {
                 </div>
             </div>
 
-            {/* Options — only for select */}
             {type === 'select' && (
                 <div className="space-y-1.5">
                     <Label className="text-xs">
@@ -241,7 +264,6 @@ function AddFieldPanel({ onAdd, onCancel }: AddFieldPanelProps) {
                 </div>
             )}
 
-            {/* Preview */}
             {label.trim() && (
                 <div className="text-xs text-muted-foreground font-mono bg-muted rounded px-2 py-1.5">
                     {buildFieldLine(type, label.trim(), options)}
@@ -287,7 +309,14 @@ function SyntaxCheatsheet() {
                     <p>::select[Label]&#123;options=&quot;a,b,c&quot;&#125;</p>
                     <p>::number[Label]</p>
                     <p>::checkbox[Label]</p>
+                    <p className="text-muted-foreground pt-1 border-t mt-2">
+                        Side-by-side fields (separate with <code className="bg-muted px-1 rounded"> | </code>):
+                    </p>
+                    <p>::stars[Energy] | ::select[Day Type]&#123;options=&quot;a,b&quot;&#125;</p>
                     <p className="text-muted-foreground pt-1">
+                        Textarea fields always render full-width and cannot be placed in rows.
+                    </p>
+                    <p className="text-muted-foreground">
                         Any other line is treated as static markdown.
                     </p>
                 </div>
@@ -307,12 +336,8 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
     const [activeTab, setActiveTab] = React.useState<'visual' | 'raw'>('visual')
     const [showAddPanel, setShowAddPanel] = React.useState(false)
 
-    // The canonical source-of-truth lives in `value` (the raw string).
-    // We parse it on demand for the visual tab.
     const blocks = React.useMemo(() => parseTemplate(value), [value])
 
-    // For dnd-kit we need stable IDs for each block.
-    // We use index-based IDs but regenerate when content changes.
     const blockIds = React.useMemo(
         () => blocks.map((_, i) => `block-${i}`),
         [blocks]
@@ -323,16 +348,10 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     )
 
-    // ── Tab switching ──────────────────────────────────────────────────────────
-
     const handleTabChange = (tab: string) => {
-        // Both tabs read from / write to `value` — no sync needed here,
-        // but we close the add-field panel when switching to Raw.
         if (tab === 'raw') setShowAddPanel(false)
         setActiveTab(tab as 'visual' | 'raw')
     }
-
-    // ── Visual tab operations ──────────────────────────────────────────────────
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event
@@ -352,15 +371,12 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
     }
 
     const handleAddField = (newLine: string) => {
-        // Append the new field line (with a leading blank line if content exists)
         const trimmed = value.trimEnd()
         onChange(trimmed ? `${trimmed}\n\n${newLine}` : newLine)
         setShowAddPanel(false)
     }
 
-    // ── Field-only blocks (for the sortable context) ───────────────────────────
-    // We render ALL blocks in visual order; only field blocks are sortable.
-    // Static blocks are rendered as inert rows.
+    // Only single field blocks are sortable; rows and statics are inert
     const fieldBlockIds = blockIds.filter((_, i) => blocks[i].kind === 'field')
 
     return (
@@ -400,6 +416,16 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
                             <div className="space-y-2">
                                 {blocks.map((block, index) => {
                                     const id = blockIds[index]
+
+                                    if (block.kind === 'row') {
+                                        return (
+                                            <RowBlockPreview
+                                                key={id}
+                                                fields={block.fields}
+                                            />
+                                        )
+                                    }
+
                                     if (block.kind === 'field') {
                                         return (
                                             <SortableFieldRow
@@ -410,13 +436,13 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
                                             />
                                         )
                                     }
+
                                     return <StaticBlockRow key={id} raw={block.raw} />
                                 })}
                             </div>
                         </SortableContext>
                     </DndContext>
 
-                    {/* Add field */}
                     {showAddPanel ? (
                         <AddFieldPanel
                             onAdd={handleAddField}
@@ -442,7 +468,7 @@ export function TemplateBuilder({ value, onChange }: TemplateBuilderProps) {
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         className="min-h-[220px] font-mono text-sm resize-none"
-                        placeholder={`## {{date}}\n\n::stars[Energy Level]\n::select[Day Type]{options="rest,push,work,recovery"}\n::textarea[Journal]`}
+                        placeholder={`## {{date}}\n\n::stars[Energy Level] | ::select[Day Type]{options="rest,push,work,recovery"}\n::textarea[Journal]`}
                         spellCheck={false}
                     />
                 </TabsContent>
