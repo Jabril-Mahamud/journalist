@@ -47,6 +47,29 @@ const formSchema = z.object({
     project_names: z.array(z.string()),
 })
 
+// ─── Placeholder resolution ───────────────────────────────────────────────────
+
+function resolveTemplatePlaceholders(content: string): string {
+    const today = new Date()
+    const date = today.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    })
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7)) // Mon-first
+    const weekStartStr = weekStart.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    })
+
+    return content
+        .replace(/\{\{date\}\}/g, date)
+        .replace(/\{\{week_start\}\}/g, weekStartStr)
+}
+
 // ─── Task helpers ─────────────────────────────────────────────────────────────
 
 function groupTasksForPicker(tasks: TodoistTask[]): {
@@ -236,6 +259,7 @@ type Step = 'pick-template' | 'write'
 export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialogProps) {
     const [step, setStep] = React.useState<Step>('pick-template')
     const [selectedTemplate, setSelectedTemplate] = React.useState<Template | null | undefined>(undefined)
+    const [resolvedTemplateContent, setResolvedTemplateContent] = React.useState<string>('')
     const [templateValues, setTemplateValues] = React.useState<Record<string, string>>({})
     const [suggestions, setSuggestions] = React.useState<Template[]>([])
     const [suggestionsLoading, setSuggestionsLoading] = React.useState(false)
@@ -282,6 +306,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         if (open) {
             setStep('pick-template')
             setSelectedTemplate(undefined)
+            setResolvedTemplateContent('')
             setTemplateValues({})
             form.reset()
             setSelectedTaskIds(new Set())
@@ -293,8 +318,12 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const handleTemplateSelect = (template: Template | null) => {
         setSelectedTemplate(template)
         if (template) {
-            const blocks = parseTemplate(template.content)
+            const resolved = resolveTemplatePlaceholders(template.content)
+            setResolvedTemplateContent(resolved)
+            const blocks = parseTemplate(resolved)
             setTemplateValues(defaultValues(blocks))
+        } else {
+            setResolvedTemplateContent('')
         }
         setStep('write')
     }
@@ -315,7 +344,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         let content = values.content
 
         if (selectedTemplate) {
-            const blocks = parseTemplate(selectedTemplate.content)
+            const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
             content = assembleMarkdown(blocks, templateValues)
             if (!content.trim()) {
                 form.setError('content', { message: 'Please fill in at least one field' })
@@ -339,8 +368,8 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
 
     const isStructured = !!selectedTemplate
     const templateBlocks = React.useMemo(
-        () => (selectedTemplate ? parseTemplate(selectedTemplate.content) : []),
-        [selectedTemplate]
+        () => (selectedTemplate ? parseTemplate(resolvedTemplateContent || selectedTemplate.content) : []),
+        [selectedTemplate, resolvedTemplateContent]
     )
     const isLoading = templatesLoading || suggestionsLoading
 

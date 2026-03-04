@@ -7,8 +7,8 @@
  * Each TemplateBlock becomes a typed input control; static blocks
  * are rendered as read-only markdown.
  *
- * Row blocks render their fields side-by-side in a flex row.
- * Textarea fields always render full-width.
+ * Consecutive non-textarea field blocks (separated only by blank lines)
+ * are automatically rendered side-by-side in a two-column grid.
  */
 
 import * as React from 'react'
@@ -115,7 +115,7 @@ function SelectWithOther({ options, value, onChange, label }: SelectWithOtherPro
   )
 }
 
-// ─── Single field control ─────────────────────────────────────────────────────
+// ─── Single field renderer ────────────────────────────────────────────────────
 
 interface FieldControlProps {
   block: FieldBlock
@@ -196,45 +196,50 @@ function FieldControl({ block, value, onChange }: FieldControlProps) {
   }
 }
 
-// ─── Field with label wrapper ─────────────────────────────────────────────────
+// ─── Render group types ───────────────────────────────────────────────────────
 
-interface FieldWithLabelProps {
-  block: FieldBlock
-  value: string
-  onChange: (value: string) => void
-  /** When true, adds flex-1 so the field expands to fill row space */
-  flex?: boolean
-}
+type RenderItem =
+  | { kind: 'single'; blockIndex: number }
+  | { kind: 'pair'; blockIndexA: number; blockIndexB: number }
 
-function FieldWithLabel({ block, value, onChange, flex }: FieldWithLabelProps) {
-  const id = `field-${block.label.replace(/\s+/g, '-').toLowerCase()}`
+// ─── Pre-process blocks into render items ────────────────────────────────────
 
-  // checkbox renders its own label inline
-  if (block.type === 'checkbox') {
-    return (
-      <div className={cn('py-1', flex && 'flex-1')}>
-        <FieldControl block={block} value={value} onChange={onChange} />
-      </div>
-    )
+/**
+ * Scans blocks and groups consecutive non-textarea field blocks
+ * (separated only by blank static lines) into side-by-side pairs.
+ */
+function buildRenderItems(blocks: TemplateBlock[]): RenderItem[] {
+  const items: RenderItem[] = []
+  let i = 0
+
+  while (i < blocks.length) {
+    const block = blocks[i]
+
+    // Is this a small field (not textarea)?
+    if (block.kind === 'field' && block.type !== 'textarea') {
+      // Look ahead past blank statics for the next block
+      let j = i + 1
+      while (j < blocks.length && blocks[j].kind === 'static' && !blocks[j].raw.trim()) {
+        j++
+      }
+
+      // If the next non-blank block is also a small field, pair them
+      if (
+        j < blocks.length &&
+        blocks[j].kind === 'field' &&
+        (blocks[j] as FieldBlock).type !== 'textarea'
+      ) {
+        items.push({ kind: 'pair', blockIndexA: i, blockIndexB: j })
+        i = j + 1 // skip both fields and blank statics between them
+        continue
+      }
+    }
+
+    items.push({ kind: 'single', blockIndex: i })
+    i++
   }
 
-  // textarea: no label wrapper
-  if (block.type === 'textarea') {
-    return (
-      <div className={flex ? 'flex-1' : undefined}>
-        <FieldControl block={block} value={value} onChange={onChange} />
-      </div>
-    )
-  }
-
-  return (
-    <div className={cn('space-y-1.5', flex && 'flex-1 min-w-0')}>
-      <Label htmlFor={id} className="text-sm font-medium">
-        {block.label}
-      </Label>
-      <FieldControl block={block} value={value} onChange={onChange} />
-    </div>
-  )
+  return items
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -243,7 +248,6 @@ export interface StructuredEntryFormProps {
   blocks: TemplateBlock[]
   values: Record<string, string>
   onChange: (values: Record<string, string>) => void
-  /** Ref for the parent to call getMarkdown() on submit */
   formRef?: React.RefObject<StructuredEntryFormHandle>
 }
 
@@ -265,10 +269,57 @@ export function StructuredEntryForm({
     onChange({ ...values, [label]: value })
   }
 
+  const renderItems = React.useMemo(() => buildRenderItems(blocks), [blocks])
+
+  const renderField = (block: FieldBlock) => {
+    const value = values[block.label] ?? ''
+    const onFieldChange = (v: string) => handleFieldChange(block.label, v)
+
+    if (block.type === 'checkbox') {
+      return (
+        <div className="py-1">
+          <FieldControl block={block} value={value} onChange={onFieldChange} />
+        </div>
+      )
+    }
+
+    if (block.type === 'textarea') {
+      return (
+        <FieldControl block={block} value={value} onChange={onFieldChange} />
+      )
+    }
+
+    return (
+      <div className="space-y-1.5">
+        <Label
+          htmlFor={`field-${block.label.replace(/\s+/g, '-').toLowerCase()}`}
+          className="text-sm font-medium"
+        >
+          {block.label}
+        </Label>
+        <FieldControl block={block} value={value} onChange={onFieldChange} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {blocks.map((block, index) => {
-        // ── Static block ─────────────────────────────────────────────────────
+      {renderItems.map((item, index) => {
+        // ── Paired fields → two-column grid ──────────────────────────────────
+        if (item.kind === 'pair') {
+          const blockA = blocks[item.blockIndexA] as FieldBlock
+          const blockB = blocks[item.blockIndexB] as FieldBlock
+          return (
+            <div key={index} className="grid grid-cols-2 gap-4">
+              {renderField(blockA)}
+              {renderField(blockB)}
+            </div>
+          )
+        }
+
+        // ── Single item ───────────────────────────────────────────────────────
+        const block = blocks[item.blockIndex]
+
         if (block.kind === 'static') {
           if (!block.raw.trim()) {
             return <div key={index} className="h-1" />
@@ -283,31 +334,10 @@ export function StructuredEntryForm({
           )
         }
 
-        // ── Row block — fields side by side ──────────────────────────────────
-        if (block.kind === 'row') {
-          return (
-            <div key={index} className="flex gap-4 flex-wrap">
-              {block.fields.map((field) => (
-                <FieldWithLabel
-                  key={field.label}
-                  block={field}
-                  value={values[field.label] ?? ''}
-                  onChange={(v) => handleFieldChange(field.label, v)}
-                  flex
-                />
-              ))}
-            </div>
-          )
-        }
-
-        // ── Single field block ────────────────────────────────────────────────
         return (
-          <FieldWithLabel
-            key={index}
-            block={block}
-            value={values[block.label] ?? ''}
-            onChange={(v) => handleFieldChange(block.label, v)}
-          />
+          <div key={index}>
+            {renderField(block as FieldBlock)}
+          </div>
         )
       })}
     </div>
