@@ -43,7 +43,7 @@ import ReactMarkdown from "react-markdown"
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
-    content: z.string().min(1, "Content is required"),
+    content: z.string(),
     project_names: z.array(z.string()),
 })
 
@@ -341,16 +341,22 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        let content = values.content
+    let content = values.content
 
-        if (selectedTemplate) {
-            const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
-            content = assembleMarkdown(blocks, templateValues)
-            if (!content.trim()) {
-                form.setError('content', { message: 'Please fill in at least one field' })
-                return
-            }
+    if (selectedTemplate) {
+        const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
+        content = assembleMarkdown(blocks, templateValues)
+        if (!content.trim()) {
+            form.setError('root', { message: 'Please fill in at least one field' })
+            return
         }
+    } else {
+        // Plain entry — enforce content manually since schema is now optional
+        if (!content?.trim()) {
+            form.setError('content', { message: 'Content is required' })
+            return
+        }
+    }
 
         try {
             const newEntry = await createEntryMutation.mutateAsync({ ...values, content })

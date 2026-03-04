@@ -1,4 +1,4 @@
-.PHONY: help init dev stop logs status destroy test test-docker
+.PHONY: help init dev dev-fe dev-be stop logs status destroy test test-docker
 
 # Config
 CLUSTER_NAME = journalist
@@ -16,7 +16,9 @@ help:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "   make init         → First time setup"
-	@echo "   make dev          → Build and run (use this daily)"
+	@echo "   make dev          → Rebuild both services + deploy"
+	@echo "   make dev-fe       → Rebuild frontend only (faster)"
+	@echo "   make dev-be       → Rebuild backend only (faster)"
 	@echo "   make stop         → Stop everything"
 	@echo "   make logs         → View backend logs"
 	@echo "   make status       → Check what's running"
@@ -42,7 +44,7 @@ init:
 	@echo "   API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
-## dev: Build and run (use this daily)
+## dev: Rebuild both services and deploy
 dev:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🚀 Starting Dev Environment"
@@ -55,6 +57,47 @@ dev:
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
 	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "✅ Backend:  http://localhost:$(BACKEND_PORT)"
+	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
+	@echo ""
+
+## dev-fe: Rebuild frontend only (use this after frontend changes)
+dev-fe:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🎨 Rebuilding Frontend"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) --no-print-directory _check-cluster
+	@echo "🔨 Building frontend image..."
+	@docker build -t journalist-frontend:latest ./frontend
+	@echo "✓ Image built"
+	@echo "📤 Loading image into cluster..."
+	@kind load docker-image journalist-frontend:latest --name $(CLUSTER_NAME)
+	@echo "✓ Image loaded"
+	@echo "🔄 Restarting frontend pod..."
+	@kubectl rollout restart deployment/frontend
+	@kubectl rollout status deployment/frontend --timeout=60s
+	-@$(MAKE) --no-print-directory _port-forward
+	@echo ""
+	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo ""
+
+## dev-be: Rebuild backend only (use this after backend changes)
+dev-be:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "⚙️  Rebuilding Backend"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) --no-print-directory _check-cluster
+	@echo "🔨 Building backend image..."
+	@docker build -t journalist-backend:latest ./backend
+	@echo "✓ Image built"
+	@echo "📤 Loading image into cluster..."
+	@kind load docker-image journalist-backend:latest --name $(CLUSTER_NAME)
+	@echo "✓ Image loaded"
+	@echo "🔄 Restarting backend pod..."
+	@kubectl rollout restart deployment/backend
+	@kubectl rollout status deployment/backend --timeout=60s
+	-@$(MAKE) --no-print-directory _port-forward
+	@echo ""
 	@echo "✅ Backend:  http://localhost:$(BACKEND_PORT)"
 	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
@@ -145,8 +188,8 @@ _create-cluster:
 
 _build-images:
 	@echo "🔨 Building images..."
-	@docker build -q -t journalist-backend:latest ./backend
-	@docker build -q -t journalist-frontend:latest ./frontend
+	@docker build -t journalist-backend:latest ./backend
+	@docker build -t journalist-frontend:latest ./frontend
 	@echo "✓ Images built"
 
 _load-images:
