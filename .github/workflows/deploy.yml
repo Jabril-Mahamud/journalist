@@ -54,8 +54,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements/prod.txt
 
-      - name: Check syntax (pyflakes)
-        run: python -m py_compile main.py models.py crud.py auth.py database.py
+      - name: Check syntax
+        run: python -m compileall -q . --exclude '__pycache__'
 
   # ─────────────────────────────────────────────
   # Run backend tests inside Docker
