@@ -58,7 +58,7 @@ function resolveTemplatePlaceholders(content: string): string {
         year: 'numeric',
     })
     const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7)) // Mon-first
+    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7))
     const weekStartStr = weekStart.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
@@ -282,16 +282,19 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
 
     const loadInitialData = async () => {
         setSuggestionsLoading(true)
+        setLoadingTasks(true)
         try {
-            const [status, sugg] = await Promise.all([
+            // ⚡ All three fetches run in parallel — previously Todoist tasks
+            // were fetched serially after the status check, adding a full
+            // extra round-trip on every dialog open.
+            const [status, sugg, tasks] = await Promise.all([
                 api.getTodoistStatus(),
                 api.getTemplateSuggestions(),
+                api.getTodoistTasks().catch(() => [] as TodoistTask[]),
             ])
             setSuggestions(sugg)
             setTodoistConnected(status.connected)
             if (status.connected) {
-                setLoadingTasks(true)
-                const tasks = await api.getTodoistTasks()
                 setTodoistTasks(tasks)
             }
         } catch (error) {
@@ -341,22 +344,21 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    let content = values.content
+        let content = values.content
 
-    if (selectedTemplate) {
-        const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
-        content = assembleMarkdown(blocks, templateValues)
-        if (!content.trim()) {
-            form.setError('root', { message: 'Please fill in at least one field' })
-            return
+        if (selectedTemplate) {
+            const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
+            content = assembleMarkdown(blocks, templateValues)
+            if (!content.trim()) {
+                form.setError('root', { message: 'Please fill in at least one field' })
+                return
+            }
+        } else {
+            if (!content?.trim()) {
+                form.setError('content', { message: 'Content is required' })
+                return
+            }
         }
-    } else {
-        // Plain entry — enforce content manually since schema is now optional
-        if (!content?.trim()) {
-            form.setError('content', { message: 'Content is required' })
-            return
-        }
-    }
 
         try {
             const newEntry = await createEntryMutation.mutateAsync({ ...values, content })
@@ -427,7 +429,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                 {step === 'write' && (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            {/* Title */}
                             <FormField
                                 control={form.control}
                                 name="title"
@@ -447,7 +448,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 )}
                             />
 
-                            {/* Content — structured or plain */}
                             {isStructured ? (
                                 <div>
                                     <StructuredEntryForm
@@ -494,7 +494,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 />
                             )}
 
-                            {/* Projects */}
                             <FormField
                                 control={form.control}
                                 name="project_names"
@@ -513,7 +512,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 )}
                             />
 
-                            {/* Todoist task linking */}
                             {todoistConnected && (loadingTasks || todoistTasks.length > 0) && (
                                 <div className="space-y-2">
                                     <FormLabel>Tasks</FormLabel>
@@ -524,7 +522,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                             </div>
                                         ) : (
                                             <div className="max-h-[220px] overflow-y-auto">
-                                                {/* Today group */}
                                                 {todayTasks.length > 0 && (
                                                     <div>
                                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 sticky top-0">
@@ -542,7 +539,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                                     </div>
                                                 )}
 
-                                                {/* Upcoming group */}
                                                 {otherTasks.length > 0 && (
                                                     <div>
                                                         {todayTasks.length > 0 && (

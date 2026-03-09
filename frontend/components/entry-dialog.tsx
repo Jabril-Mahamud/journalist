@@ -64,37 +64,34 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         },
     })
 
-    const loadTodoistData = async () => {
+    // ⚡ Replaced two serial loadTodoistData() + loadLinkedTasks() calls with a
+    // single Promise.all that fetches status, tasks, and linked task IDs in parallel.
+    // Previously entering edit mode fired 3 sequential network requests.
+    const loadEditData = React.useCallback(async (entryId: number) => {
+        setLoadingTasks(true)
         try {
-            const status = await api.getTodoistStatus()
+            const [status, tasks, links] = await Promise.all([
+                api.getTodoistStatus(),
+                api.getTodoistTasks().catch(() => [] as TodoistTask[]),
+                api.getEntryTasks(entryId),
+            ])
             setTodoistConnected(status.connected)
             if (status.connected) {
-                setLoadingTasks(true)
-                const tasks = await api.getTodoistTasks()
                 setTodoistTasks(tasks)
             }
+            setSelectedTaskIds(new Set(links.map((l) => l.todoist_task_id)))
         } catch (error) {
-            console.error("Error loading Todoist status:", error)
+            console.error("Error loading edit data:", error)
         } finally {
             setLoadingTasks(false)
         }
-    }
-
-    const loadLinkedTasks = async () => {
-        if (!entry) return
-        try {
-            const links = await api.getEntryTasks(entry.id)
-            setSelectedTaskIds(new Set(links.map(l => l.todoist_task_id)))
-        } catch (error) {
-            console.error("Error loading linked tasks:", error)
-        }
-    }
+    }, [api])
 
     React.useEffect(() => {
-        if (open && isEditing) {
-            loadTodoistData()
+        if (open && isEditing && entry) {
+            loadEditData(entry.id)
         }
-    }, [open, isEditing])
+    }, [open, isEditing, entry, loadEditData])
 
     React.useEffect(() => {
         if (entry) {
@@ -103,9 +100,6 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                 content: entry.content,
                 project_names: entry.projects.map(p => p.name),
             })
-            if (isEditing) {
-                loadLinkedTasks()
-            }
         }
         setIsEditing(false)
         setSelectedTaskIds(new Set())
