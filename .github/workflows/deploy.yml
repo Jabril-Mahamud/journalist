@@ -55,7 +55,7 @@ jobs:
         run: pip install -r requirements/prod.txt
 
       - name: Check syntax (pyflakes)
-        run: python -m py_compile main.py models.py schemas.py crud.py auth.py database.py
+        run: python -m py_compile main.py models.py crud.py auth.py database.py
 
   # ─────────────────────────────────────────────
   # Run backend tests inside Docker
