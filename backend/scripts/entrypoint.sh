@@ -3,7 +3,8 @@ set -e
 
 # Build DATABASE_URL from individual env vars if not already set
 if [ -z "$DATABASE_URL" ]; then
-  export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:5432/${POSTGRES_DB}"
+  ENCODED_PASSWORD=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${POSTGRES_PASSWORD}', safe=''))")
+  export DATABASE_URL="postgresql://${POSTGRES_USER}:${ENCODED_PASSWORD}@${DB_HOST}:5432/${POSTGRES_DB}"
 fi
 
 echo "Running database migrations..."
