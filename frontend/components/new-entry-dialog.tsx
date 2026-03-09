@@ -27,6 +27,7 @@ import { StructuredEntryForm, StructuredEntryFormHandle } from "@/components/str
 import { useApi, TodoistTask, Template } from "@/lib/api"
 import { useCreateEntry } from "@/lib/hooks/useEntries"
 import { useTemplates } from "@/lib/hooks/useTemplates"
+import { useTodoistStatus, useTodoistTasks, useTemplateSuggestions } from "@/lib/hooks/useTodoist"
 import { parseTemplate, defaultValues, assembleMarkdown } from "@/lib/template-parser"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -58,7 +59,7 @@ function resolveTemplatePlaceholders(content: string): string {
         year: 'numeric',
     })
     const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7)) // Mon-first
+    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7))
     const weekStartStr = weekStart.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
@@ -261,13 +262,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const [selectedTemplate, setSelectedTemplate] = React.useState<Template | null | undefined>(undefined)
     const [resolvedTemplateContent, setResolvedTemplateContent] = React.useState<string>('')
     const [templateValues, setTemplateValues] = React.useState<Record<string, string>>({})
-    const [suggestions, setSuggestions] = React.useState<Template[]>([])
-    const [suggestionsLoading, setSuggestionsLoading] = React.useState(false)
-
-    const [todoistConnected, setTodoistConnected] = React.useState(false)
-    const [todoistTasks, setTodoistTasks] = React.useState<TodoistTask[]>([])
     const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
-    const [loadingTasks, setLoadingTasks] = React.useState(false)
 
     const structuredFormRef = React.useRef<StructuredEntryFormHandle>(null!)
 
@@ -275,33 +270,18 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const createEntryMutation = useCreateEntry()
     const { data: allTemplates = [], isLoading: templatesLoading } = useTemplates()
 
+    // ── All data comes from React Query cache — no local fetch state needed ──
+    const { data: suggestions = [], isLoading: suggestionsLoading } = useTemplateSuggestions()
+    const { data: todoistStatus } = useTodoistStatus()
+    const todoistConnected = todoistStatus?.connected ?? false
+    const { data: todoistTasks = [], isLoading: loadingTasks } = useTodoistTasks(open)
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: { title: "", content: "", project_names: [] },
     })
 
-    const loadInitialData = async () => {
-        setSuggestionsLoading(true)
-        try {
-            const [status, sugg] = await Promise.all([
-                api.getTodoistStatus(),
-                api.getTemplateSuggestions(),
-            ])
-            setSuggestions(sugg)
-            setTodoistConnected(status.connected)
-            if (status.connected) {
-                setLoadingTasks(true)
-                const tasks = await api.getTodoistTasks()
-                setTodoistTasks(tasks)
-            }
-        } catch (error) {
-            console.error("Error loading initial data:", error)
-        } finally {
-            setSuggestionsLoading(false)
-            setLoadingTasks(false)
-        }
-    }
-
+    // Reset dialog state when opened
     React.useEffect(() => {
         if (open) {
             setStep('pick-template')
@@ -310,7 +290,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
             setTemplateValues({})
             form.reset()
             setSelectedTaskIds(new Set())
-            loadInitialData()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
@@ -341,22 +320,21 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    let content = values.content
+        let content = values.content
 
-    if (selectedTemplate) {
-        const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
-        content = assembleMarkdown(blocks, templateValues)
-        if (!content.trim()) {
-            form.setError('root', { message: 'Please fill in at least one field' })
-            return
+        if (selectedTemplate) {
+            const blocks = parseTemplate(resolvedTemplateContent || selectedTemplate.content)
+            content = assembleMarkdown(blocks, templateValues)
+            if (!content.trim()) {
+                form.setError('root', { message: 'Please fill in at least one field' })
+                return
+            }
+        } else {
+            if (!content?.trim()) {
+                form.setError('content', { message: 'Content is required' })
+                return
+            }
         }
-    } else {
-        // Plain entry — enforce content manually since schema is now optional
-        if (!content?.trim()) {
-            form.setError('content', { message: 'Content is required' })
-            return
-        }
-    }
 
         try {
             const newEntry = await createEntryMutation.mutateAsync({ ...values, content })
@@ -427,7 +405,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                 {step === 'write' && (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            {/* Title */}
                             <FormField
                                 control={form.control}
                                 name="title"
@@ -447,7 +424,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 )}
                             />
 
-                            {/* Content — structured or plain */}
                             {isStructured ? (
                                 <div>
                                     <StructuredEntryForm
@@ -494,7 +470,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 />
                             )}
 
-                            {/* Projects */}
                             <FormField
                                 control={form.control}
                                 name="project_names"
@@ -513,7 +488,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                 )}
                             />
 
-                            {/* Todoist task linking */}
                             {todoistConnected && (loadingTasks || todoistTasks.length > 0) && (
                                 <div className="space-y-2">
                                     <FormLabel>Tasks</FormLabel>
@@ -524,7 +498,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                             </div>
                                         ) : (
                                             <div className="max-h-[220px] overflow-y-auto">
-                                                {/* Today group */}
                                                 {todayTasks.length > 0 && (
                                                     <div>
                                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 sticky top-0">
@@ -542,7 +515,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
                                                     </div>
                                                 )}
 
-                                                {/* Upcoming group */}
                                                 {otherTasks.length > 0 && (
                                                     <div>
                                                         {todayTasks.length > 0 && (

@@ -12,7 +12,13 @@ import {
     CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { useApi, Project } from "@/lib/api";
+import { Project } from "@/lib/api";
+import { useProjects } from "@/lib/hooks/useEntries";
+
+// ⚡ Replaced manual loadProjects() + useEffect with useProjects() hook.
+// The hook reads from React Query's shared cache, so if the Prefetcher
+// (or any other page) has already fetched projects, this renders
+// instantly with zero extra network requests.
 
 interface ProjectComboboxProps {
     value: string[];
@@ -26,27 +32,7 @@ export function ProjectCombobox({
     placeholder = "Add projects...",
 }: ProjectComboboxProps) {
     const [inputValue, setInputValue] = React.useState("");
-    const [existingProjects, setExistingProjects] = React.useState<
-        Project[]
-    >([]);
-    const [loading, setLoading] = React.useState(true);
-    const api = useApi();
-
-    React.useEffect(() => {
-        loadProjects();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const loadProjects = async () => {
-        try {
-            const projects = await api.getProjects();
-            setExistingProjects(projects);
-        } catch (error) {
-            console.error("Error loading projects:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: existingProjects = [], isLoading: loading } = useProjects();
 
     const handleSelect = (project: string) => {
         const trimmedProject = project.trim().toLowerCase();
@@ -68,7 +54,7 @@ export function ProjectCombobox({
     };
 
     const filteredSuggestions = existingProjects.filter(
-        (project) =>
+        (project: Project) =>
             !value.includes(project.name) &&
             project.name.includes(inputValue.toLowerCase()),
     );
@@ -76,7 +62,7 @@ export function ProjectCombobox({
     const showCreateNew =
         inputValue &&
         !existingProjects.some(
-            (project) => project.name.toLowerCase() === inputValue.toLowerCase(),
+            (project: Project) => project.name.toLowerCase() === inputValue.toLowerCase(),
         );
 
     return (
@@ -129,7 +115,7 @@ export function ProjectCombobox({
 
                     {filteredSuggestions.length > 0 && (
                         <CommandGroup heading="Existing Projects">
-                            {filteredSuggestions.map((project) => (
+                            {filteredSuggestions.map((project: Project) => (
                                 <CommandItem
                                     key={project.id}
                                     value={project.name}
