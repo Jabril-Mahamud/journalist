@@ -27,6 +27,7 @@ import { StructuredEntryForm, StructuredEntryFormHandle } from "@/components/str
 import { useApi, TodoistTask, Template } from "@/lib/api"
 import { useCreateEntry } from "@/lib/hooks/useEntries"
 import { useTemplates } from "@/lib/hooks/useTemplates"
+import { useTodoistStatus, useTodoistTasks, useTemplateSuggestions } from "@/lib/hooks/useTodoist"
 import { parseTemplate, defaultValues, assembleMarkdown } from "@/lib/template-parser"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -261,13 +262,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const [selectedTemplate, setSelectedTemplate] = React.useState<Template | null | undefined>(undefined)
     const [resolvedTemplateContent, setResolvedTemplateContent] = React.useState<string>('')
     const [templateValues, setTemplateValues] = React.useState<Record<string, string>>({})
-    const [suggestions, setSuggestions] = React.useState<Template[]>([])
-    const [suggestionsLoading, setSuggestionsLoading] = React.useState(false)
-
-    const [todoistConnected, setTodoistConnected] = React.useState(false)
-    const [todoistTasks, setTodoistTasks] = React.useState<TodoistTask[]>([])
     const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(new Set())
-    const [loadingTasks, setLoadingTasks] = React.useState(false)
 
     const structuredFormRef = React.useRef<StructuredEntryFormHandle>(null!)
 
@@ -275,36 +270,18 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
     const createEntryMutation = useCreateEntry()
     const { data: allTemplates = [], isLoading: templatesLoading } = useTemplates()
 
+    // ── All data comes from React Query cache — no local fetch state needed ──
+    const { data: suggestions = [], isLoading: suggestionsLoading } = useTemplateSuggestions()
+    const { data: todoistStatus } = useTodoistStatus()
+    const todoistConnected = todoistStatus?.connected ?? false
+    const { data: todoistTasks = [], isLoading: loadingTasks } = useTodoistTasks(open)
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: { title: "", content: "", project_names: [] },
     })
 
-    const loadInitialData = async () => {
-        setSuggestionsLoading(true)
-        setLoadingTasks(true)
-        try {
-            // ⚡ All three fetches run in parallel — previously Todoist tasks
-            // were fetched serially after the status check, adding a full
-            // extra round-trip on every dialog open.
-            const [status, sugg, tasks] = await Promise.all([
-                api.getTodoistStatus(),
-                api.getTemplateSuggestions(),
-                api.getTodoistTasks().catch(() => [] as TodoistTask[]),
-            ])
-            setSuggestions(sugg)
-            setTodoistConnected(status.connected)
-            if (status.connected) {
-                setTodoistTasks(tasks)
-            }
-        } catch (error) {
-            console.error("Error loading initial data:", error)
-        } finally {
-            setSuggestionsLoading(false)
-            setLoadingTasks(false)
-        }
-    }
-
+    // Reset dialog state when opened
     React.useEffect(() => {
         if (open) {
             setStep('pick-template')
@@ -313,7 +290,6 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
             setTemplateValues({})
             form.reset()
             setSelectedTaskIds(new Set())
-            loadInitialData()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
