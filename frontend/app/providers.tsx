@@ -10,8 +10,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            // 5 minutes — journaling data rarely changes from external sources.
+            // This eliminates the constant refetches when navigating between pages.
+            staleTime: 5 * 60 * 1000,
+            // Keep unused data in cache for 10 minutes before GC
+            gcTime: 10 * 60 * 1000,
             refetchOnWindowFocus: false,
+            // Don't hammer the server on transient network blips
+            retry: 1,
           },
         },
       })
