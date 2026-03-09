@@ -55,7 +55,7 @@ jobs:
         run: pip install -r requirements/prod.txt
 
       - name: Check syntax
-        run: python -m compileall -q . --exclude '__pycache__'
+        run: python -m compileall -q -x '__pycache__' .
 
   # ─────────────────────────────────────────────
   # Run backend tests inside Docker
