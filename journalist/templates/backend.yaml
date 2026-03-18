@@ -25,32 +25,12 @@ spec:
         spec:
             containers:
               - name: backend
-                image: journalist-backend:latest
-                imagePullPolicy: Never
+                image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
+                imagePullPolicy: Always
                 ports:
                   - containerPort: 8001
-                env:
-                  - name: POSTGRES_USER
-                    valueFrom:
-                        secretKeyRef:
-                            name: postgres-credentials
-                            key: POSTGRES_USER
-                  - name: POSTGRES_PASSWORD
-                    valueFrom:
-                        secretKeyRef:
-                            name: postgres-credentials
-                            key: POSTGRES_PASSWORD
-                  - name: POSTGRES_DB
-                    valueFrom:
-                        secretKeyRef:
-                            name: postgres-credentials
-                            key: POSTGRES_DB
-                  - name: DB_HOST
-                    valueFrom:
-                        secretKeyRef:
-                            name: postgres-credentials
-                            key: DB_HOST
-                  - name: CLERK_JWKS_URL
-                    value: {{ .Values.clerk.jwks_url }}
-                  - name: ALLOWED_ORIGINS
-                    value: {{ .Values.cors.allowed_origins }}
+                envFrom:
+                - secretRef:
+                    name: journalist-secrets
+                - secretRef:
+                    name: postgres-credentials
