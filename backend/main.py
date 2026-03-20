@@ -25,12 +25,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(entries.router)
-app.include_router(projects.router)
-app.include_router(todoist.router)
-app.include_router(templates.router)
-
+app.include_router(entries.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
+app.include_router(todoist.router, prefix="/api")
+app.include_router(templates.router, prefix="/api")
 
 @app.get("/health")
 def health():
