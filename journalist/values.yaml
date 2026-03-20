@@ -1,17 +1,21 @@
 backend:
   image: europe-west2-docker.pkg.dev/journalist-490612/journalist/backend
   tag: latest
-  replicas: 1
   port: 8001
+  serviceType: ClusterIP
 
 frontend:
   image: europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend
   tag: latest
-  replicas: 1
   port: 3001
+  serviceType: ClusterIP
+
+ingress:
+  enabled: true
+  host: ""
 
 postgres:
   user: postgres
   password: ""
-  db: postgres
+  db: journalist
   host: db.igqnbnkvhpvdugajoltn.supabase.co

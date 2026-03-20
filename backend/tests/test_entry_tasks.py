@@ -7,13 +7,13 @@ import models
 
 def test_link_task_to_entry(auth_client, db):
     entry_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Test Entry", "content": "Content", "project_names": []}
     )
     entry_id = entry_response.json()["id"]
     
     response = auth_client.post(
-        f"/entries/{entry_id}/tasks",
+        f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
     assert response.status_code == 200
@@ -24,19 +24,19 @@ def test_link_task_to_entry(auth_client, db):
 
 def test_link_same_task_twice_no_duplicate(auth_client, db):
     entry_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Test Entry", "content": "Content", "project_names": []}
     )
     entry_id = entry_response.json()["id"]
     
     response1 = auth_client.post(
-        f"/entries/{entry_id}/tasks",
+        f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
     assert response1.status_code == 200
     
     response2 = auth_client.post(
-        f"/entries/{entry_id}/tasks",
+        f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
     assert response2.status_code == 200
@@ -48,15 +48,15 @@ def test_link_same_task_twice_no_duplicate(auth_client, db):
 
 def test_list_entry_tasks(auth_client, db):
     entry_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Test Entry", "content": "Content", "project_names": []}
     )
     entry_id = entry_response.json()["id"]
     
-    auth_client.post(f"/entries/{entry_id}/tasks", json={"todoist_task_id": "task_1"})
-    auth_client.post(f"/entries/{entry_id}/tasks", json={"todoist_task_id": "task_2"})
+    auth_client.post(f"/api/entries/{entry_id}/tasks", json={"todoist_task_id": "task_1"})
+    auth_client.post(f"/api/entries/{entry_id}/tasks", json={"todoist_task_id": "task_2"})
     
-    response = auth_client.get(f"/entries/{entry_id}/tasks")
+    response = auth_client.get(f"/api/entries/{entry_id}/tasks")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -67,14 +67,14 @@ def test_list_entry_tasks(auth_client, db):
 
 def test_unlink_task_from_entry(auth_client, db):
     entry_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Test Entry", "content": "Content", "project_names": []}
     )
     entry_id = entry_response.json()["id"]
     
-    auth_client.post(f"/entries/{entry_id}/tasks", json={"todoist_task_id": "task_123"})
+    auth_client.post(f"/api/entries/{entry_id}/tasks", json={"todoist_task_id": "task_123"})
     
-    response = auth_client.delete(f"/entries/{entry_id}/tasks/task_123")
+    response = auth_client.delete(f"/api/entries/{entry_id}/tasks/task_123")
     assert response.status_code == 200
     assert response.json() == {"unlinked": True}
     
@@ -84,17 +84,17 @@ def test_unlink_task_from_entry(auth_client, db):
 
 def test_link_task_to_nonexistent_entry_returns_404(auth_client):
     response = auth_client.post(
-        "/entries/999/tasks",
+        "/api/entries/999/tasks",
         json={"todoist_task_id": "task_123"}
     )
     assert response.status_code == 404
 
 
 def test_list_tasks_for_nonexistent_entry_returns_404(auth_client):
-    response = auth_client.get("/entries/999/tasks")
+    response = auth_client.get("/api/entries/999/tasks")
     assert response.status_code == 404
 
 
 def test_unlink_task_from_nonexistent_entry_returns_404(auth_client):
-    response = auth_client.delete("/entries/999/tasks/task_123")
+    response = auth_client.delete("/api/entries/999/tasks/task_123")
     assert response.status_code == 404

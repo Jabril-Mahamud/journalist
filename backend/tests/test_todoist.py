@@ -8,7 +8,7 @@ import models
 
 
 def test_todoist_status_not_connected(auth_client, db, test_user):
-    response = auth_client.get("/todoist/status")
+    response = auth_client.get("/api/todoist/status")
     assert response.status_code == 200
     assert response.json() == {"connected": False}
 
@@ -17,7 +17,7 @@ def test_todoist_status_connected(auth_client, db, test_user):
     test_user.todoist_token = "valid_token"
     db.commit()
 
-    response = auth_client.get("/todoist/status")
+    response = auth_client.get("/api/todoist/status")
     assert response.status_code == 200
     assert response.json() == {"connected": True}
 
@@ -28,7 +28,7 @@ def test_save_todoist_token_invalid(mock_http, auth_client, db, test_user):
     mock_response.status_code = 401
     mock_http.get.return_value = mock_response
 
-    response = auth_client.put("/todoist/token", json={"token": "invalid_token"})
+    response = auth_client.put("/api/todoist/token", json={"token": "invalid_token"})
     assert response.status_code == 400
     assert "Invalid Todoist API token" in response.json()["detail"]
 
@@ -40,7 +40,7 @@ def test_save_todoist_token_valid(mock_http, auth_client, db, test_user):
     mock_response.ok = True
     mock_http.get.return_value = mock_response
 
-    response = auth_client.put("/todoist/token", json={"token": "valid_token"})
+    response = auth_client.put("/api/todoist/token", json={"token": "valid_token"})
     assert response.status_code == 200
     assert response.json() == {"connected": True}
 
@@ -52,7 +52,7 @@ def test_delete_todoist_token(auth_client, db, test_user):
     test_user.todoist_token = "existing_token"
     db.commit()
 
-    response = auth_client.delete("/todoist/token")
+    response = auth_client.delete("/api/todoist/token")
     assert response.status_code == 200
     assert response.json() == {"connected": False}
 
@@ -81,7 +81,7 @@ def test_get_todoist_tasks(mock_http, auth_client, db, test_user):
 
     mock_http.get.side_effect = [mock_tasks_response, mock_projects_response]
 
-    response = auth_client.get("/todoist/tasks")
+    response = auth_client.get("/api/todoist/tasks")
     assert response.status_code == 200
     tasks = response.json()
     assert len(tasks) == 1
@@ -99,7 +99,7 @@ def test_close_todoist_task(mock_http, auth_client, db, test_user):
     mock_response.ok = True
     mock_http.post.return_value = mock_response
 
-    response = auth_client.post("/todoist/tasks/123/close")
+    response = auth_client.post("/api/todoist/tasks/123/close")
     assert response.status_code == 200
     assert response.json() == {"closed": True}
 
@@ -117,7 +117,7 @@ def test_reschedule_todoist_task(mock_http, auth_client, db, test_user):
     mock_http.post.return_value = mock_response
 
     response = auth_client.patch(
-        "/todoist/tasks/123/reschedule",
+        "/api/todoist/tasks/123/reschedule",
         json={"due_date": "2026-03-10"}
     )
     assert response.status_code == 200
@@ -144,7 +144,7 @@ def test_reschedule_task_not_found(mock_http, auth_client, db, test_user):
     mock_http.post.return_value = mock_response
 
     response = auth_client.patch(
-        "/todoist/tasks/nonexistent/reschedule",
+        "/api/todoist/tasks/nonexistent/reschedule",
         json={"due_date": "2026-03-10"}
     )
     assert response.status_code == 404
@@ -163,7 +163,7 @@ def test_reschedule_todoist_api_error(mock_http, auth_client, db, test_user):
     mock_http.post.return_value = mock_response
 
     response = auth_client.patch(
-        "/todoist/tasks/123/reschedule",
+        "/api/todoist/tasks/123/reschedule",
         json={"due_date": "2026-03-10"}
     )
     assert response.status_code == 502
@@ -174,7 +174,7 @@ def test_reschedule_invalid_date_format(auth_client, db, test_user):
     db.commit()
 
     response = auth_client.patch(
-        "/todoist/tasks/123/reschedule",
+        "/api/todoist/tasks/123/reschedule",
         json={"due_date": "10-03-2026"}  # wrong format
     )
     assert response.status_code == 422
@@ -183,7 +183,7 @@ def test_reschedule_invalid_date_format(auth_client, db, test_user):
 def test_reschedule_not_connected(auth_client, db, test_user):
     # No token set
     response = auth_client.patch(
-        "/todoist/tasks/123/reschedule",
+        "/api/todoist/tasks/123/reschedule",
         json={"due_date": "2026-03-10"}
     )
     assert response.status_code == 400

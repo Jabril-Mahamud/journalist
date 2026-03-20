@@ -1,0 +1,8 @@
+ingress:
+  host: writejrnl.uk
+
+frontend:
+  tag: latest
+
+backend:
+  tag: latest

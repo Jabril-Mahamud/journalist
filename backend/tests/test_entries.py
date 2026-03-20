@@ -9,7 +9,7 @@ from main import app
 
 def test_create_entry(auth_client, db):
     response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={
             "title": "Test Entry",
             "content": "This is my journal entry",
@@ -25,7 +25,7 @@ def test_create_entry(auth_client, db):
 
 def test_create_entry_auto_creates_projects(auth_client, db):
     response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={
             "title": "Test Entry",
             "content": "Content",
@@ -46,23 +46,23 @@ def test_create_entry_auto_creates_projects(auth_client, db):
 
 
 def test_list_entries(auth_client, db):
-    auth_client.post("/entries/", json={"title": "Entry 1", "content": "Content 1", "project_names": []})
-    auth_client.post("/entries/", json={"title": "Entry 2", "content": "Content 2", "project_names": []})
+    auth_client.post("/api/entries/", json={"title": "Entry 1", "content": "Content 1", "project_names": []})
+    auth_client.post("/api/entries/", json={"title": "Entry 2", "content": "Content 2", "project_names": []})
     
-    response = auth_client.get("/entries/")
+    response = auth_client.get("/api/entries/")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
 
 
 def test_user_cannot_see_other_users_entries(auth_client, db, second_user):
-    auth_client.post("/entries/", json={"title": "User 1 Entry", "content": "Content", "project_names": []})
+    auth_client.post("/api/entries/", json={"title": "User 1 Entry", "content": "Content", "project_names": []})
     
     def _get_second_user_override():
         return second_user
     app.dependency_overrides[get_current_user] = _get_second_user_override
     
-    response = auth_client.get("/entries/")
+    response = auth_client.get("/api/entries/")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 0
@@ -70,25 +70,25 @@ def test_user_cannot_see_other_users_entries(auth_client, db, second_user):
 
 def test_get_single_entry(auth_client, db):
     create_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Test Entry", "content": "Content", "project_names": []}
     )
     entry_id = create_response.json()["id"]
     
-    response = auth_client.get(f"/entries/{entry_id}")
+    response = auth_client.get(f"/api/entries/{entry_id}")
     assert response.status_code == 200
     assert response.json()["title"] == "Test Entry"
 
 
 def test_update_entry(auth_client, db):
     create_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Original Title", "content": "Original Content", "project_names": []}
     )
     entry_id = create_response.json()["id"]
     
     response = auth_client.put(
-        f"/entries/{entry_id}",
+        f"/api/entries/{entry_id}",
         json={"title": "Updated Title", "content": "Updated Content", "project_names": []}
     )
     assert response.status_code == 200
@@ -98,13 +98,13 @@ def test_update_entry(auth_client, db):
 
 def test_update_entry_projects(auth_client, db):
     create_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "Entry", "content": "Content", "project_names": ["work"]}
     )
     entry_id = create_response.json()["id"]
     
     response = auth_client.put(
-        f"/entries/{entry_id}",
+        f"/api/entries/{entry_id}",
         json={"title": "Entry", "content": "Content", "project_names": ["personal", "ideas"]}
     )
     assert response.status_code == 200
@@ -119,12 +119,12 @@ def test_update_entry_projects(auth_client, db):
 
 def test_delete_entry(auth_client, db):
     create_response = auth_client.post(
-        "/entries/",
+        "/api/entries/",
         json={"title": "To Delete", "content": "Content", "project_names": []}
     )
     entry_id = create_response.json()["id"]
     
-    response = auth_client.delete(f"/entries/{entry_id}")
+    response = auth_client.delete(f"/api/entries/{entry_id}")
     assert response.status_code == 200
     
     entries = db.query(models.JournalEntry).all()
@@ -132,15 +132,15 @@ def test_delete_entry(auth_client, db):
 
 
 def test_get_nonexistent_entry_returns_404(auth_client):
-    response = auth_client.get("/entries/999")
+    response = auth_client.get("/api/entries/999")
     assert response.status_code == 404
 
 
 def test_update_nonexistent_entry_returns_404(auth_client):
-    response = auth_client.put("/entries/999", json={"title": "Test", "content": "Test", "project_names": []})
+    response = auth_client.put("/api/entries/999", json={"title": "Test", "content": "Test", "project_names": []})
     assert response.status_code == 404
 
 
 def test_delete_nonexistent_entry_returns_404(auth_client):
-    response = auth_client.delete("/entries/999")
+    response = auth_client.delete("/api/entries/999")
     assert response.status_code == 404
