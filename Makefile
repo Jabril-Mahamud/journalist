@@ -1,9 +1,17 @@
-.PHONY: help init dev dev-fe dev-be stop logs status destroy test test-docker
+.PHONY: help init dev dev-fe dev-be stop logs logs-fe status destroy test test-docker \
+        push push-be push-fe deploy-dev deploy-prod status-gke logs-dev logs-be-dev \
+        logs-prod logs-be-prod
 
-# Config
-CLUSTER_NAME = journalist
-BACKEND_PORT = 8001
-FRONTEND_PORT = 3001
+# ── Local Kind config ─────────────────────────────────────────────────────────
+CLUSTER_NAME   = journalist
+BACKEND_PORT   = 8001
+FRONTEND_PORT  = 3001
+
+# ── GKE / GAR config ─────────────────────────────────────────────────────────
+PROJECT        = journalist-490612
+REGION         = europe-west2
+GAR            = $(REGION)-docker.pkg.dev/$(PROJECT)/journalist
+STATIC_IP      = 34.13.20.60
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # COMMANDS
@@ -15,27 +23,44 @@ help:
 	@echo "Journalist - Development Commands"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "   make init         → First time setup"
-	@echo "   make dev          → Rebuild both services + deploy"
+	@echo "  Local (Kind)"
+	@echo "   make init         → First time local setup"
+	@echo "   make dev          → Rebuild both services + deploy locally"
 	@echo "   make dev-fe       → Rebuild frontend only (faster)"
 	@echo "   make dev-be       → Rebuild backend only (faster)"
-	@echo "   make stop         → Stop everything"
-	@echo "   make logs         → View backend logs"
-	@echo "   make status       → Check what's running"
-	@echo "   make destroy      → Delete entire cluster"
+	@echo "   make stop         → Stop port forwarding"
+	@echo "   make destroy      → Delete local Kind cluster"
+	@echo ""
+	@echo "  GKE"
+	@echo "   make push         → Build + push all images to GAR"
+	@echo "   make push-be      → Build + push backend only"
+	@echo "   make push-fe      → Build + push both frontend images"
+	@echo "   make deploy-dev   → Helm deploy to dev namespace"
+	@echo "   make deploy-prod  → Helm deploy to prod namespace"
+	@echo "   make status-gke   → Show pods in dev + prod"
+	@echo "   make logs-dev     → Stream frontend logs (dev)"
+	@echo "   make logs-be-dev  → Stream backend logs (dev)"
+	@echo "   make logs-prod    → Stream frontend logs (prod)"
+	@echo "   make logs-be-prod → Stream backend logs (prod)"
+	@echo ""
+	@echo "  Testing"
 	@echo "   make test         → Run backend tests locally (fast)"
-	@echo "   make test-docker  → Run tests + verify production build (mirrors CI + Fly.io)"
+	@echo "   make test-docker  → Run tests in Docker (mirrors CI)"
 	@echo ""
 
-## init: First-time setup (run once)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LOCAL (Kind)
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## init: First-time local setup (run once)
 init:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🎬 First Time Setup"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@$(MAKE) --no-print-directory _create-cluster
-	@$(MAKE) --no-print-directory _build-images
+	@$(MAKE) --no-print-directory _build-local-images
 	@$(MAKE) --no-print-directory _load-images
-	@$(MAKE) --no-print-directory _helm-deploy
+	@$(MAKE) --no-print-directory _helm-deploy-local
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
 	@echo "✅ Ready!"
@@ -44,15 +69,15 @@ init:
 	@echo "   API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
-## dev: Rebuild both services and deploy
+## dev: Rebuild both services and deploy locally
 dev:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🚀 Starting Dev Environment"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@$(MAKE) --no-print-directory _check-cluster
-	@$(MAKE) --no-print-directory _build-images
+	@$(MAKE) --no-print-directory _build-local-images
 	@$(MAKE) --no-print-directory _load-images
-	@$(MAKE) --no-print-directory _helm-deploy
+	@$(MAKE) --no-print-directory _helm-deploy-local
 	@$(MAKE) --no-print-directory _restart-pods
 	-@$(MAKE) --no-print-directory _port-forward
 	@echo ""
@@ -61,7 +86,7 @@ dev:
 	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
-## dev-fe: Rebuild frontend only (use this after frontend changes)
+## dev-fe: Rebuild frontend only
 dev-fe:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🎨 Rebuilding Frontend"
@@ -81,7 +106,7 @@ dev-fe:
 	@echo "✅ Frontend: http://localhost:$(FRONTEND_PORT)"
 	@echo ""
 
-## dev-be: Rebuild backend only (use this after backend changes)
+## dev-be: Rebuild backend only
 dev-be:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "⚙️  Rebuilding Backend"
@@ -102,6 +127,135 @@ dev-be:
 	@echo "✅ API docs: http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 
+## stop: Stop port forwarding
+stop:
+	@echo "🛑 Stopping..."
+	@pkill -f "kubectl port-forward" 2>/dev/null || true
+	@lsof -ti:$(BACKEND_PORT) | xargs kill -9 2>/dev/null || true
+	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
+	@echo "✅ Stopped (cluster and data preserved)"
+
+## destroy: Delete local Kind cluster (⚠️  deletes all data)
+destroy:
+	@echo "⚠️  This will delete the local Kind cluster and all data"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		kind delete cluster --name $(CLUSTER_NAME); \
+		echo "✅ Cluster destroyed"; \
+	else \
+		echo "❌ Cancelled"; \
+	fi
+
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# GKE
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## push: Build + push all images to GAR (backend + both frontend tags)
+push:
+	@$(MAKE) --no-print-directory push-be
+	@$(MAKE) --no-print-directory push-fe
+
+## push-be: Build + push backend image
+push-be:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔨 Building + pushing backend"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker build \
+		--platform linux/amd64 \
+		-t $(GAR)/backend:latest \
+		./backend
+	@docker push $(GAR)/backend:latest
+	@echo "✅ Backend pushed"
+
+## push-fe: Build + push both frontend images (dev + latest)
+push-fe:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔨 Building + pushing frontend (dev)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker build \
+		--platform linux/amd64 \
+		--build-arg NEXT_PUBLIC_API_URL=https://dev.writejrnl.uk \
+		-t $(GAR)/frontend:dev \
+		./frontend
+	@docker push $(GAR)/frontend:dev
+	@echo "✅ Frontend (dev) pushed"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔨 Building + pushing frontend (prod)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker build \
+		--platform linux/amd64 \
+		--build-arg NEXT_PUBLIC_API_URL=https://writejrnl.uk \
+		-t $(GAR)/frontend:latest \
+		./frontend
+	@docker push $(GAR)/frontend:latest
+	@echo "✅ Frontend (prod) pushed"
+
+## deploy-dev: Helm deploy to dev namespace on GKE
+deploy-dev:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🚀 Deploying to dev"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@helm upgrade --install journalist-dev ./journalist \
+		--namespace dev \
+		--values journalist/values.yaml \
+		--values journalist/values.dev.yaml \
+		--values journalist/values.secret.yaml
+	@kubectl rollout status deployment/frontend -n dev
+	@kubectl rollout status deployment/backend -n dev
+	@echo "✅ Dev deployed — https://dev.writejrnl.uk"
+
+## deploy-prod: Helm deploy to prod namespace on GKE
+deploy-prod:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🚀 Deploying to prod"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@helm upgrade --install journalist-prod ./journalist \
+		--namespace prod \
+		--values journalist/values.yaml \
+		--values journalist/values.prod.yaml \
+		--values journalist/values.secret.yaml
+	@kubectl rollout status deployment/frontend -n prod
+	@kubectl rollout status deployment/backend -n prod
+	@echo "✅ Prod deployed — https://writejrnl.uk"
+
+## status-gke: Show pod status across dev + prod namespaces
+status-gke:
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📊 GKE Status"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "── dev ──────────────────────────────────────────"
+	@kubectl get pods -n dev 2>/dev/null || echo "  No pods"
+	@echo ""
+	@echo "── prod ─────────────────────────────────────────"
+	@kubectl get pods -n prod 2>/dev/null || echo "  No pods"
+	@echo ""
+	@echo "── certificates ─────────────────────────────────"
+	@kubectl get certificate -n dev 2>/dev/null
+	@kubectl get certificate -n prod 2>/dev/null
+	@echo ""
+
+## logs-dev: Stream frontend logs (dev)
+logs-dev:
+	@kubectl logs -n dev deployment/frontend --tail=50 -f
+
+## logs-be-dev: Stream backend logs (dev)
+logs-be-dev:
+	@kubectl logs -n dev deployment/backend --tail=50 -f
+
+## logs-prod: Stream frontend logs (prod)
+logs-prod:
+	@kubectl logs -n prod deployment/frontend --tail=50 -f
+
+## logs-be-prod: Stream backend logs (prod)
+logs-be-prod:
+	@kubectl logs -n prod deployment/backend --tail=50 -f
+
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TESTING
+#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## test: Run backend tests locally (fast, for TDD)
 test:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -110,7 +264,7 @@ test:
 	@cd backend && pytest
 	@echo ""
 
-## test-docker: Run tests + verify production build (mirrors exactly what CI and Fly.io run)
+## test-docker: Run tests in Docker (mirrors CI)
 test-docker:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🐳 Running Backend Tests in Docker"
@@ -124,56 +278,13 @@ test-docker:
 	@echo "✅ Production image built successfully"
 	@echo ""
 
-## stop: Stop everything
-stop:
-	@echo "🛑 Stopping..."
-	@pkill -f "kubectl port-forward" 2>/dev/null || true
-	@lsof -ti:$(BACKEND_PORT) | xargs kill -9 2>/dev/null || true
-	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
-	@echo "✅ Stopped (cluster and data preserved)"
-
-## logs: View backend logs
-logs:
-	@kubectl logs -l app=backend --tail=50 -f
-
-## logs-fe: View frontend logs
-logs-fe:
-	@kubectl logs -l app=frontend --tail=50 -f
-
-## status: Check what's running
-status:
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "📊 Cluster Status"
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo ""
-	@kubectl get pods 2>/dev/null || echo "  No cluster running"
-	@echo ""
-	@if pgrep -f "kubectl port-forward" >/dev/null 2>&1; then \
-		echo "Port forwarding: ✓ Active"; \
-	else \
-		echo "Port forwarding: ✗ Not running — run 'make dev'"; \
-	fi
-	@echo ""
-
-## destroy: Delete entire cluster (⚠️  deletes all data)
-destroy:
-	@echo "⚠️  This will delete the entire cluster and all data"
-	@read -p "Are you sure? [y/N] " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		kind delete cluster --name $(CLUSTER_NAME); \
-		echo "✅ Cluster destroyed"; \
-	else \
-		echo "❌ Cancelled"; \
-	fi
-
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # INTERNAL HELPERS
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 _check-cluster:
 	@if ! kind get clusters 2>/dev/null | grep -q "^$(CLUSTER_NAME)$$"; then \
-		echo "❌ Cluster not found — run 'make init' first"; \
+		echo "❌ Local cluster not found — run 'make init' first"; \
 		exit 1; \
 	fi
 
@@ -186,7 +297,7 @@ _create-cluster:
 		echo "✓ Cluster created"; \
 	fi
 
-_build-images:
+_build-local-images:
 	@echo "🔨 Building images..."
 	@docker build -t journalist-backend:latest ./backend
 	@docker build -t journalist-frontend:latest ./frontend
@@ -198,7 +309,7 @@ _load-images:
 	@kind load docker-image journalist-frontend:latest --name $(CLUSTER_NAME)
 	@echo "✓ Images loaded"
 
-_helm-deploy:
+_helm-deploy-local:
 	@echo "⚙️  Deploying..."
 	@helm upgrade --install journalist ./journalist \
 		--values ./journalist/values.secret.yaml \
