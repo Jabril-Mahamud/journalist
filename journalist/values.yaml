@@ -13,6 +13,7 @@ frontend:
 ingress:
   enabled: true
   host: ""
+  tls: false # set to true in values.dev.yaml and values.prod.yaml only
 
 postgres:
   user: postgres

@@ -1,5 +1,6 @@
 ingress:
   host: writejrnl.uk
+  tls: true
 
 frontend:
   tag: latest

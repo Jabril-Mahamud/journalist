@@ -1,5 +1,6 @@
 ingress:
   host: dev.writejrnl.uk
+  tls: true
 
 frontend:
   tag: dev
