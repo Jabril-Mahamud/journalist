@@ -1,5 +1,6 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
 import { useEntries } from '@/lib/hooks/useEntries'
 import { useProjects } from '@/lib/hooks/useEntries'
 import { useTemplates } from '@/lib/hooks/useTemplates'
