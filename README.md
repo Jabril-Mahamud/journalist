@@ -448,7 +448,7 @@ make destroy && make init
 
 **Security & reliability**
 
-- [ ] Drive all secrets from env vars (`.env.example` documenting every var)
+- [x] Drive all secrets from env vars (`.env.example` documenting every var)
 
 **Writing experience**
 
