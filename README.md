@@ -9,7 +9,7 @@ The end goal is a **journaling app that syncs with Todoist**, so your daily refl
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+| ------- | ----------- |
 | Frontend | Next.js 16 + React 19 + Tailwind CSS v4 + shadcn/ui |
 | Backend | FastAPI + SQLAlchemy 2.0 |
 | Database | PostgreSQL (Supabase in production) |
@@ -124,7 +124,7 @@ This project uses [yoyo-migrations](https://ollycope.com/software/yoyo/latest/) 
 
 Migrations are plain SQL files in `backend/migrations/`:
 
-```
+```md
 backend/migrations/
   0001_initial_schema.sql
   0002_add_indexes.sql
@@ -184,7 +184,7 @@ Templates use a custom field syntax that gets parsed into interactive form field
 
 ### Field syntax
 
-```
+```md
 ::type[Label]{options}
 ```
 
@@ -193,7 +193,7 @@ Any line that doesn't match this pattern is treated as static markdown and passe
 ### Supported field types
 
 | Type | Description | Markdown output |
-|------|-------------|-----------------|
+| --- | --- | --- |
 | `::textarea[Label]` | Large freetext box | Raw text, no label |
 | `::text[Label]` | Single line input | `**Label:** value` |
 | `::stars[Label]` | 1–5 star rating | `**Label:** ⭐⭐⭐⭐` |
@@ -242,7 +242,7 @@ Switching between modes syncs the content both ways. Users can always override a
 
 ## Project Structure
 
-```
+```md
 journalist/
 ├── backend/                  # FastAPI backend
 │   ├── main.py              # App setup and route includes
