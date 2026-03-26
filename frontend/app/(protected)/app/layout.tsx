@@ -1,16 +1,6 @@
-'use client'
-
 export const dynamic = 'force-dynamic'
-import { useEntries } from '@/lib/hooks/useEntries'
-import { useProjects } from '@/lib/hooks/useEntries'
-import { useTemplates } from '@/lib/hooks/useTemplates'
 
-function Prefetcher() {
-    useEntries()
-    useProjects()
-    useTemplates()
-    return null
-}
+import { Prefetcher } from './prefetcher'
 
 export default function ProtectedLayout({
     children,
