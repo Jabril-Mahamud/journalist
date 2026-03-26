@@ -1,3 +1,6 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Providers } from './providers'
 import type { Metadata } from 'next'
