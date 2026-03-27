@@ -129,6 +129,7 @@ jobs:
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ steps.env.outputs.api_url }} \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
             -t europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend:${{ github.sha }} \
             ./frontend
           docker push europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend:${{ github.sha }}
