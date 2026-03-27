@@ -16,6 +16,7 @@ ingress:
   tls: false # set to true in values.dev.yaml and values.prod.yaml only
 
 postgres:
+  enabled: false
   user: postgres
   password: ""
   db: journalist
