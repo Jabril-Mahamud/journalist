@@ -313,7 +313,11 @@ _helm-deploy-local:
 	@echo "⚙️  Deploying..."
 	@helm upgrade --install journalist ./journalist \
 		--values ./journalist/values.secret.yaml \
-		--wait
+		--set backend.image=journalist-backend \
+		--set backend.tag=latest \
+		--set frontend.image=journalist-frontend \
+		--set frontend.tag=latest \
+		--set ingress.enabled=false
 	@echo "✓ Deployed"
 
 _restart-pods:
