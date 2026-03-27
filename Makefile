@@ -190,7 +190,6 @@ push-fe:
 		./frontend
 	@docker push $(GAR)/frontend:latest
 	@echo "✅ Frontend (prod) pushed"
-
 ## deploy-dev: Helm deploy to dev namespace on GKE
 deploy-dev:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -199,8 +198,8 @@ deploy-dev:
 	@helm upgrade --install journalist-dev ./journalist \
 		--namespace dev \
 		--values journalist/values.yaml \
-		--values journalist/values.dev.yaml \
-		--values journalist/values.secret.yaml
+		--values journalist/values.secret.yaml \
+		--values journalist/values.dev.yaml
 	@kubectl rollout status deployment/frontend -n dev
 	@kubectl rollout status deployment/backend -n dev
 	@echo "✅ Dev deployed — https://dev.writejrnl.uk"
@@ -213,12 +212,11 @@ deploy-prod:
 	@helm upgrade --install journalist-prod ./journalist \
 		--namespace prod \
 		--values journalist/values.yaml \
-		--values journalist/values.prod.yaml \
-		--values journalist/values.secret.yaml
+		--values journalist/values.secret.yaml \
+		--values journalist/values.prod.yaml
 	@kubectl rollout status deployment/frontend -n prod
 	@kubectl rollout status deployment/backend -n prod
 	@echo "✅ Prod deployed — https://writejrnl.uk"
-
 ## status-gke: Show pod status across dev + prod namespaces
 status-gke:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
