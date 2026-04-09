@@ -1,11 +1,11 @@
 backend:
-  image: europe-west2-docker.pkg.dev/journalist-490612/journalist/backend
+  image: ghcr.io/jabril-mahamud/journalist/backend
   tag: latest
   port: 8001
   serviceType: ClusterIP
 
 frontend:
-  image: europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend
+  image: ghcr.io/jabril-mahamud/journalist/frontend
   tag: latest
   port: 3001
   serviceType: ClusterIP
@@ -14,14 +14,8 @@ ingress:
   enabled: true
   host: ""
   tls: false # set to true in values.dev.yaml and values.prod.yaml only
+  clusterIssuer: false # only enable in one release to avoid conflicts
 
 postgres:
-  enabled: false
-  user: postgres
-  password: ""
-  db: journalist
-  host: db.igqnbnkvhpvdugajoltn.supabase.co
-
-cloudsql:
-  enabled: false
-  instanceConnectionName: ""
+  enabled: true
+  storage: 5Gi

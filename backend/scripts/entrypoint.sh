@@ -7,7 +7,7 @@ if [ -z "$DATABASE_URL" ]; then
   export DATABASE_URL="postgresql://${POSTGRES_USER}:${ENCODED_PASSWORD}@${DB_HOST}:5432/${POSTGRES_DB}"
 fi
 
-# Wait for postgres/cloud-sql-proxy to be ready
+# Wait for database to be ready
 echo "Waiting for database to be ready..."
 for i in $(seq 1 30); do
   python3 -c "
