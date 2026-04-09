@@ -103,7 +103,7 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Built with Next.js, FastAPI, and Kubernetes</p>
+          <p>Built with Next.js, FastAPI, and Kubernetes — deployed on K8s &amp; Civo</p>
         </div>
       </footer>
     </div>
