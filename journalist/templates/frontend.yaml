@@ -33,3 +33,8 @@ spec:
                 env:
                   - name: NEXT_PUBLIC_API_URL
                     value: "http://localhost:8001"
+                  - name: CLERK_SECRET_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: journalist-secrets
+                        key: CLERK_SECRET_KEY
