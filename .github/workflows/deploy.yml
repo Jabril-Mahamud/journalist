@@ -76,7 +76,7 @@ jobs:
             ./backend
 
   # ─────────────────────────────────────────────
-  # Deploy to GKE
+  # Deploy to Civo via GHCR
   # Push to dev  → dev namespace  (dev.writejrnl.uk)
   # Push to main → prod namespace (writejrnl.uk)
   # ─────────────────────────────────────────────
@@ -86,8 +86,8 @@ jobs:
     needs: [lint-frontend, lint-backend, test-backend]
     if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
     permissions:
-      id-token: write
       contents: read
+      packages: write
     environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
@@ -107,37 +107,33 @@ jobs:
             echo "release=journalist-dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Configure Docker for GAR
-        run: gcloud auth configure-docker europe-west2-docker.pkg.dev
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend
         run: |
           docker build \
-            -t europe-west2-docker.pkg.dev/journalist-490612/journalist/backend:${{ github.sha }} \
+            -t ghcr.io/${{ github.repository }}/backend:${{ github.sha }} \
             ./backend
-          docker push europe-west2-docker.pkg.dev/journalist-490612/journalist/backend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
 
       - name: Build and push frontend
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ steps.env.outputs.api_url }} \
             --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
-            -t europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend:${{ github.sha }} \
+            -t ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} \
             ./frontend
-          docker push europe-west2-docker.pkg.dev/journalist-490612/journalist/frontend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
 
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: journalist
-          location: europe-west2-b
-          project_id: journalist-490612
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.CIVO_KUBECONFIG }}" | base64 -d > ~/.kube/config
 
       - name: Helm deploy
         run: |
@@ -145,5 +141,7 @@ jobs:
             --namespace ${{ steps.env.outputs.namespace }} \
             --values journalist/values.yaml \
             --values ${{ steps.env.outputs.values_file }} \
+            --set backend.image=ghcr.io/${{ github.repository }}/backend \
             --set backend.tag=${{ github.sha }} \
+            --set frontend.image=ghcr.io/${{ github.repository }}/frontend \
             --set frontend.tag=${{ github.sha }}

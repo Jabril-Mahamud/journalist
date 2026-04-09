@@ -1,16 +1,10 @@
 ingress:
   host: writejrnl.uk
   tls: true
+  clusterIssuer: true
 
 frontend:
   tag: latest
 
 backend:
   tag: latest
-
-cloudsql:
-  enabled: true
-  instanceConnectionName: "journalist-490612:europe-west2:journalist-db"
-
-postgres:
-  enabled: false

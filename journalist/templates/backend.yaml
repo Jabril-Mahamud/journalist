@@ -36,17 +36,3 @@ spec:
                   - secretRef:
                       name: postgres-credentials
 
-              {{- if .Values.cloudsql.enabled }}
-              - name: cloud-sql-proxy
-                image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2
-                args:
-                  - "--structured-logs"
-                  - "--port=5432"
-                  - {{ .Values.cloudsql.instanceConnectionName | quote }}
-                securityContext:
-                  runAsNonRoot: true
-                resources:
-                  requests:
-                    memory: "64Mi"
-                    cpu: "50m"
-              {{- end }}

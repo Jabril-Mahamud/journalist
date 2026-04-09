@@ -12,10 +12,10 @@ The end goal is a **journaling app that syncs with Todoist**, so your daily refl
 | ------- | ----------- |
 | Frontend | Next.js 16 + React 19 + Tailwind CSS v4 + shadcn/ui |
 | Backend | FastAPI + SQLAlchemy 2.0 |
-| Database | PostgreSQL (Supabase in production) |
+| Database | PostgreSQL (in-cluster on Civo, local StatefulSet on Kind) |
 | Auth | Clerk (JWT verified via JWKS) |
 | Local Infra | Kubernetes (Kind) + Helm + Docker |
-| Production | Fly.io |
+| Production | Civo (K3s) |
 
 ---
 
@@ -302,23 +302,17 @@ journalist/
 
 ## Deployment
 
-The app deploys to **Fly.io** (frontend + backend) with **Supabase** for the database.
-CI/CD runs via GitHub Actions on push to `main` — linting runs on every PR.
+The app deploys to **Civo** (Kubernetes) with in-cluster PostgreSQL and **GHCR** for container images.
+CI/CD runs via GitHub Actions — push to `dev` deploys to dev namespace, push to `main` deploys to prod.
 
-### Fly secrets (backend)
-
-```bash
-cd backend
-fly secrets set CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
-fly secrets set ALLOWED_ORIGINS=https://journalist-frontend.fly.dev
-fly secrets set DATABASE_URL=postgresql://...
-```
+See [GUIDE.md](GUIDE.md) for full setup and deployment instructions.
 
 ### Manual deploy
 
 ```bash
-cd backend && fly deploy
-cd frontend && fly deploy
+make push          # Build + push images to GHCR
+make deploy-dev    # Deploy to dev namespace
+make deploy-prod   # Deploy to prod namespace
 ```
 
 ---
@@ -413,8 +407,8 @@ make destroy && make init
 - [x] Calendar view
 - [x] All entries browser with search and filters
 - [x] Activity heatmap
-- [x] Deploy to Fly.io + Supabase
-- [x] CI/CD pipeline (GitHub Actions → Fly.io)
+- [x] Deploy to Civo + in-cluster PostgreSQL
+- [x] CI/CD pipeline (GitHub Actions → Civo)
 - [x] JWT signature verification
 - [x] Pre-push hooks (lint, type check, helm lint, smoke test)
 - [x] CORS locked to production origin
