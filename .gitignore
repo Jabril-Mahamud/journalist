@@ -13,3 +13,8 @@ htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+Tasks.md
+
+# Ignore all root markdown files except README.md
+/*.md
+!README.md
