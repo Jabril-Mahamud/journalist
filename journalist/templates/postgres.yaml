@@ -27,11 +27,9 @@ spec:
             containers:
               - name: postgres
                 image: postgres:15-alpine
-                env:
-                  - name: POSTGRES_PASSWORD
-                    value: "devpassword"  # LOCAL DEV ONLY - do not use in production
-                  - name: POSTGRES_DB
-                    value: journalist
+                envFrom:
+                  - secretRef:
+                      name: postgres-credentials
                 ports:
                   - containerPort: 5432
                 volumeMounts:
@@ -45,5 +43,5 @@ spec:
             accessModes: [ "ReadWriteOnce" ]
             resources:
                 requests:
-                    storage: 1Gi
+                    storage: {{ .Values.postgres.storage | default "5Gi" }}
 {{- end }}
