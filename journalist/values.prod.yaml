@@ -8,3 +8,7 @@ frontend:
 
 backend:
   tag: latest
+
+cloudsql:
+  enabled: true
+  instanceConnectionName: "journalist-490612:europe-west2:journalist-db"
