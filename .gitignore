@@ -3,8 +3,10 @@ backend/.env*
 frontend/.env*
 journalist/values.secret.yaml
 .vscode/settings.json
-AGENTS.md
-Agents.md
+# Ignore all root markdown files except README.md
+/*.md
+!README.md
+
 **/__pycache__
 # Coverage reports
 htmlcov/
