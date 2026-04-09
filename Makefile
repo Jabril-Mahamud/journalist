@@ -1,5 +1,5 @@
 .PHONY: help init dev dev-fe dev-be stop logs logs-fe status destroy test test-docker \
-        push push-be push-fe deploy-dev deploy-prod status-gke logs-dev logs-be-dev \
+        push push-be push-fe deploy-dev deploy-prod status logs-dev logs-be-dev \
         logs-prod logs-be-prod
 
 # ── Local Kind config ─────────────────────────────────────────────────────────
@@ -7,11 +7,8 @@ CLUSTER_NAME   = journalist
 BACKEND_PORT   = 8001
 FRONTEND_PORT  = 3001
 
-# ── GKE / GAR config ─────────────────────────────────────────────────────────
-PROJECT        = journalist-490612
-REGION         = europe-west2
-GAR            = $(REGION)-docker.pkg.dev/$(PROJECT)/journalist
-STATIC_IP      = 34.13.20.60
+# ── GHCR config ──────────────────────────────────────────────────────────────
+REGISTRY       = ghcr.io/jabril-mahamud/journalist
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # COMMANDS
@@ -31,13 +28,13 @@ help:
 	@echo "   make stop         → Stop port forwarding"
 	@echo "   make destroy      → Delete local Kind cluster"
 	@echo ""
-	@echo "  GKE"
-	@echo "   make push         → Build + push all images to GAR"
+	@echo "  Civo"
+	@echo "   make push         → Build + push all images to GHCR"
 	@echo "   make push-be      → Build + push backend only"
 	@echo "   make push-fe      → Build + push both frontend images"
 	@echo "   make deploy-dev   → Helm deploy to dev namespace"
 	@echo "   make deploy-prod  → Helm deploy to prod namespace"
-	@echo "   make status-gke   → Show pods in dev + prod"
+	@echo "   make status       → Show pods in dev + prod"
 	@echo "   make logs-dev     → Stream frontend logs (dev)"
 	@echo "   make logs-be-dev  → Stream backend logs (dev)"
 	@echo "   make logs-prod    → Stream frontend logs (prod)"
@@ -148,10 +145,10 @@ destroy:
 	fi
 
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# GKE
+# CIVO
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## push: Build + push all images to GAR (backend + both frontend tags)
+## push: Build + push all images to GHCR (backend + both frontend tags)
 push:
 	@$(MAKE) --no-print-directory push-be
 	@$(MAKE) --no-print-directory push-fe
@@ -163,9 +160,9 @@ push-be:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@docker build \
 		--platform linux/amd64 \
-		-t $(GAR)/backend:latest \
+		-t $(REGISTRY)/backend:latest \
 		./backend
-	@docker push $(GAR)/backend:latest
+	@docker push $(REGISTRY)/backend:latest
 	@echo "✅ Backend pushed"
 
 ## push-fe: Build + push both frontend images (dev + latest)
@@ -176,9 +173,9 @@ push-fe:
 	@docker build \
 		--platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL=https://dev.writejrnl.uk \
-		-t $(GAR)/frontend:dev \
+		-t $(REGISTRY)/frontend:dev \
 		./frontend
-	@docker push $(GAR)/frontend:dev
+	@docker push $(REGISTRY)/frontend:dev
 	@echo "✅ Frontend (dev) pushed"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🔨 Building + pushing frontend (prod)"
@@ -186,11 +183,12 @@ push-fe:
 	@docker build \
 		--platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL=https://writejrnl.uk \
-		-t $(GAR)/frontend:latest \
+		-t $(REGISTRY)/frontend:latest \
 		./frontend
-	@docker push $(GAR)/frontend:latest
+	@docker push $(REGISTRY)/frontend:latest
 	@echo "✅ Frontend (prod) pushed"
-## deploy-dev: Helm deploy to dev namespace on GKE
+
+## deploy-dev: Helm deploy to dev namespace
 deploy-dev:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🚀 Deploying to dev"
@@ -198,13 +196,12 @@ deploy-dev:
 	@helm upgrade --install journalist-dev ./journalist \
 		--namespace dev \
 		--values journalist/values.yaml \
-		--values journalist/values.secret.yaml \
 		--values journalist/values.dev.yaml
 	@kubectl rollout status deployment/frontend -n dev
 	@kubectl rollout status deployment/backend -n dev
 	@echo "✅ Dev deployed — https://dev.writejrnl.uk"
 
-## deploy-prod: Helm deploy to prod namespace on GKE
+## deploy-prod: Helm deploy to prod namespace
 deploy-prod:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "🚀 Deploying to prod"
@@ -212,15 +209,15 @@ deploy-prod:
 	@helm upgrade --install journalist-prod ./journalist \
 		--namespace prod \
 		--values journalist/values.yaml \
-		--values journalist/values.secret.yaml \
 		--values journalist/values.prod.yaml
 	@kubectl rollout status deployment/frontend -n prod
 	@kubectl rollout status deployment/backend -n prod
 	@echo "✅ Prod deployed — https://writejrnl.uk"
-## status-gke: Show pod status across dev + prod namespaces
-status-gke:
+
+## status: Show pod status across dev + prod namespaces
+status:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "📊 GKE Status"
+	@echo "📊 Cluster Status"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "── dev ──────────────────────────────────────────"
