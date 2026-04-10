@@ -3,7 +3,7 @@ kind: Service
 metadata:
     name: frontend
 spec:
-    type: {{ .Values.backend.serviceType | default "ClusterIP" }}
+    type: {{ .Values.frontend.serviceType | default "ClusterIP" }}
     selector:
         app: frontend
     ports:
