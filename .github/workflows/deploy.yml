@@ -98,12 +98,12 @@ jobs:
           echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "namespace=prod" >> $GITHUB_OUTPUT
-            echo "api_url=https://writejrnl.uk" >> $GITHUB_OUTPUT
+            echo "api_url=https://writejrnl.uk/api" >> $GITHUB_OUTPUT
             echo "values_file=journalist/values.prod.yaml" >> $GITHUB_OUTPUT
             echo "release=journalist-prod" >> $GITHUB_OUTPUT
           else
             echo "namespace=dev" >> $GITHUB_OUTPUT
-            echo "api_url=https://dev.writejrnl.uk" >> $GITHUB_OUTPUT
+            echo "api_url=https://dev.writejrnl.uk/api" >> $GITHUB_OUTPUT
             echo "values_file=journalist/values.dev.yaml" >> $GITHUB_OUTPUT
             echo "release=journalist-dev" >> $GITHUB_OUTPUT
           fi

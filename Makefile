@@ -172,7 +172,7 @@ push-fe:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@docker build \
 		--platform linux/amd64 \
-		--build-arg NEXT_PUBLIC_API_URL=https://dev.writejrnl.uk \
+		--build-arg NEXT_PUBLIC_API_URL=https://dev.writejrnl.uk/api \
 		-t $(REGISTRY)/frontend:dev \
 		./frontend
 	@docker push $(REGISTRY)/frontend:dev
