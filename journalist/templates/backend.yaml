@@ -9,6 +9,7 @@ spec:
     ports:
       - port: 8001
         targetPort: 8001
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
