@@ -1,19 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 import crud
 import schemas
 import models
 from database import get_db
 from auth import get_current_user
+from rate_limit import limiter
 
-limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/entries", tags=["entries"])
 
 
-@router.post("/", response_model=schemas.JournalEntry)
+@router.post("/", response_model=schemas.JournalEntry, status_code=201)
 @limiter.limit("60/minute")
 def create_entry(
     request: Request,
@@ -26,8 +24,8 @@ def create_entry(
 
 @router.get("/", response_model=list[schemas.JournalEntry])
 def read_entries(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0, le=10000),
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -87,7 +85,7 @@ def get_entry_tasks(
     return entry.entry_tasks
 
 
-@router.post("/{entry_id}/tasks", response_model=schemas.EntryTaskOut)
+@router.post("/{entry_id}/tasks", response_model=schemas.EntryTaskOut, status_code=201)
 @limiter.limit("60/minute")
 def link_task_to_entry(
     request: Request,
@@ -115,7 +113,7 @@ def link_task_to_entry(
     return link
 
 
-@router.delete("/{entry_id}/tasks/{task_id}")
+@router.delete("/{entry_id}/tasks/{task_id}", response_model=schemas.UnlinkResult)
 @limiter.limit("60/minute")
 def unlink_task_from_entry(
     request: Request,

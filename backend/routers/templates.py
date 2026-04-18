@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 import crud
 import schemas
@@ -9,8 +7,8 @@ import models
 from database import get_db
 from auth import get_current_user
 from utils.trigger_matcher import matches_trigger
+from rate_limit import limiter
 
-limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/templates", tags=["templates"])
 
 
@@ -33,7 +31,7 @@ def list_templates(
     return crud.get_templates(db, current_user.id)
 
 
-@router.post("/", response_model=schemas.Template)
+@router.post("/", response_model=schemas.Template, status_code=201)
 @limiter.limit("60/minute")
 def create_template(
     request: Request,
@@ -85,7 +83,7 @@ def delete_template(
     return deleted
 
 
-@router.post("/{template_id}/fork", response_model=schemas.Template)
+@router.post("/{template_id}/fork", response_model=schemas.Template, status_code=201)
 @limiter.limit("60/minute")
 def fork_template(
     request: Request,
