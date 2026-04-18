@@ -305,8 +305,6 @@ journalist/
 The app deploys to **Civo** (Kubernetes) with in-cluster PostgreSQL and **GHCR** for container images.
 CI/CD runs via GitHub Actions — push to `dev` deploys to dev namespace, push to `main` deploys to prod.
 
-See [GUIDE.md](GUIDE.md) for full setup and deployment instructions.
-
 ### Manual deploy
 
 ```bash
@@ -427,43 +425,15 @@ make destroy && make init
 - [x] Database migrations (yoyo — plain SQL files)
 - [x] Template system — backend CRUD, built-in templates, time/day-based triggers
 
-### In progress
+### Done (cont.)
 
-**Template rework**
-
-- [ ] Template field syntax (`::type[Label]{options}`)
-- [ ] Template parser + markdown assembler (`frontend/lib/template-parser.ts`)
-- [ ] Structured entry form — renders typed fields on entry creation
-- [ ] Template picker in new entry dialog (with suggestions)
-- [ ] Visual + raw template builder with drag-to-reorder fields
-- [ ] Update built-in templates to use structured syntax
-
-### Up next
-
-**Security & reliability**
-
+- [x] Template field syntax (`::type[Label]{options}`)
+- [x] Template parser + markdown assembler (`frontend/lib/template-parser.ts`)
+- [x] Structured entry form — renders typed fields on entry creation
+- [x] Template picker in new entry dialog (with suggestions)
+- [x] Visual + raw template builder with drag-to-reorder fields
+- [x] Update built-in templates to use structured syntax
 - [x] Drive all secrets from env vars (`.env.example` documenting every var)
-
-**Writing experience**
-
-- [ ] Writing prompts — surface a random prompt if new entry is idle for 5 seconds
-- [ ] Word count and reading time on entries
-- [ ] Draft autosave to localStorage if dialog is closed mid-write
-- [ ] Keyboard shortcuts — `N` for new entry, `Cmd+K` for search/jump
-
-**Revisiting entries**
-
-- [ ] On this day — show entries from the same date in previous years
-- [ ] Related entries — entries sharing projects shown when viewing an entry
-
-**Insights**
-
-- [ ] Writing stats page — total entries, total words, most used projects, most productive day of week, average streak
-- [ ] Project breakdown — time distribution across projects over a period
-
-**Data ownership**
-
-- [ ] Export — download all entries as individual markdown files or a single JSON
 
 ---
 
