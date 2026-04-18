@@ -9,6 +9,7 @@ frontend:
   tag: latest
   port: 3001
   serviceType: ClusterIP
+  apiUrl: "http://localhost:8001"
 
 ingress:
   enabled: true
