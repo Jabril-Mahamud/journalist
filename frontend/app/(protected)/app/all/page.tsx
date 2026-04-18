@@ -12,36 +12,9 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Calendar, X, Plus, Trash2, Folder, Search } from 'lucide-react'
-import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { getReadableTextColor, stripMarkdown, formatRelativeDate } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { parse } from 'date-fns'
-
-function isSameDay(d1: Date, d2: Date): boolean {
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  )
-}
-
-function formatEntryDate(dateString: string): string {
-  const date = new Date(dateString)
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  if (isSameDay(date, today)) {
-    return 'Today'
-  } else if (isSameDay(date, yesterday)) {
-    return 'Yesterday'
-  } else {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-}
 
 function groupEntriesByDate(
   entries: JournalEntry[]
@@ -49,7 +22,7 @@ function groupEntriesByDate(
   const groups: Map<string, JournalEntry[]> = new Map()
 
   entries.forEach((entry) => {
-    const dateKey = formatEntryDate(entry.created_at)
+    const dateKey = formatRelativeDate(entry.created_at)
     if (!groups.has(dateKey)) {
       groups.set(dateKey, [])
     }
@@ -430,9 +403,10 @@ export default function AllEntriesPage() {
                     <Separator className="mt-2" />
                   </div>
                   {dateEntries.map((entry) => (
-                    <div
+                    <button
                       key={entry.id}
-                      className="group hover:bg-accent/50 -mx-4 px-4 py-4 rounded-lg transition-colors cursor-pointer"
+                      type="button"
+                      className="group hover:bg-accent/50 -mx-4 px-4 py-4 rounded-lg transition-colors cursor-pointer w-full text-left"
                       onClick={() => {
                         setSelectedEntry(entry)
                         setEntryDialogOpen(true)
@@ -467,7 +441,7 @@ export default function AllEntriesPage() {
                           {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ))}

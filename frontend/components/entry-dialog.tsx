@@ -28,7 +28,7 @@ import { useApi, JournalEntry, TodoistTask } from "@/lib/api"
 import { useUpdateEntry, useDeleteEntry } from "@/lib/hooks/useEntries"
 import { Pencil, Trash2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
-import { getReadableTextColor } from "@/lib/utils"
+import { getReadableTextColor, formatDateTime } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -168,17 +168,6 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         setSelectedTaskIds(new Set())
     }
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-        })
-    }
-
     if (!entry) return null
 
     return (
@@ -192,7 +181,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
                             </DialogTitle>
                             {!isEditing && (
                                 <DialogDescription>
-                                    {formatDate(entry.created_at)}
+                                    {formatDateTime(entry.created_at)}
                                 </DialogDescription>
                             )}
                         </div>
