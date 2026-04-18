@@ -1,6 +1,10 @@
 import pytest
 import os
 import sys
+
+# Must be set before any app imports so crypto._fernet is initialized at module load
+os.environ.setdefault("ENCRYPTION_KEY", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool

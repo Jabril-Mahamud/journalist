@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import jwt
 from jwt import PyJWKClient
@@ -76,23 +77,29 @@ def get_current_user(
         ).first()
 
         if not user:
-            email = payload.get("email")
-            user = models.User(
-                clerk_user_id=clerk_user_id,
-                email=email
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
+            try:
+                email = payload.get("email")
+                user = models.User(
+                    clerk_user_id=clerk_user_id,
+                    email=email
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+            except IntegrityError:
+                db.rollback()
+                user = db.query(models.User).filter(
+                    models.User.clerk_user_id == clerk_user_id
+                ).first()
 
         return user
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials: {str(e)}"
+            detail="Could not validate credentials"
         )
 
 

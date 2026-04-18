@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 from unittest.mock import patch, MagicMock
 import models
+from crypto import encrypt_token, decrypt_token
 
 
 def test_todoist_status_not_connected(auth_client, db, test_user):
@@ -14,7 +15,7 @@ def test_todoist_status_not_connected(auth_client, db, test_user):
 
 
 def test_todoist_status_connected(auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     response = auth_client.get("/api/todoist/status")
@@ -45,7 +46,7 @@ def test_save_todoist_token_valid(mock_http, auth_client, db, test_user):
     assert response.json() == {"connected": True}
 
     db.refresh(test_user)
-    assert test_user.todoist_token == "valid_token"
+    assert decrypt_token(test_user.todoist_token) == "valid_token"
 
 
 def test_delete_todoist_token(auth_client, db, test_user):
@@ -62,7 +63,7 @@ def test_delete_todoist_token(auth_client, db, test_user):
 
 @patch("routers.todoist.http_requests")
 def test_get_todoist_tasks(mock_http, auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     mock_tasks_response = MagicMock()
@@ -91,7 +92,7 @@ def test_get_todoist_tasks(mock_http, auth_client, db, test_user):
 
 @patch("routers.todoist.http_requests")
 def test_close_todoist_task(mock_http, auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     mock_response = MagicMock()
@@ -108,7 +109,7 @@ def test_close_todoist_task(mock_http, auth_client, db, test_user):
 
 @patch("routers.todoist.http_requests")
 def test_reschedule_todoist_task(mock_http, auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     mock_response = MagicMock()
@@ -135,7 +136,7 @@ def test_reschedule_todoist_task(mock_http, auth_client, db, test_user):
 
 @patch("routers.todoist.http_requests")
 def test_reschedule_task_not_found(mock_http, auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     mock_response = MagicMock()
@@ -153,7 +154,7 @@ def test_reschedule_task_not_found(mock_http, auth_client, db, test_user):
 
 @patch("routers.todoist.http_requests")
 def test_reschedule_todoist_api_error(mock_http, auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     mock_response = MagicMock()
@@ -170,7 +171,7 @@ def test_reschedule_todoist_api_error(mock_http, auth_client, db, test_user):
 
 
 def test_reschedule_invalid_date_format(auth_client, db, test_user):
-    test_user.todoist_token = "valid_token"
+    test_user.todoist_token = encrypt_token("valid_token")
     db.commit()
 
     response = auth_client.patch(
