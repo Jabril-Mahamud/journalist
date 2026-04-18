@@ -144,3 +144,17 @@ def test_update_nonexistent_entry_returns_404(auth_client):
 def test_delete_nonexistent_entry_returns_404(auth_client):
     response = auth_client.delete("/api/entries/999")
     assert response.status_code == 404
+
+
+def test_deleting_user_cascades_to_entries(db, test_user):
+    entry = models.JournalEntry(
+        title="Test", content="Content", user_id=test_user.id
+    )
+    db.add(entry)
+    db.commit()
+
+    db.delete(test_user)
+    db.commit()
+
+    entries = db.query(models.JournalEntry).all()
+    assert len(entries) == 0
