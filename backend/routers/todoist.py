@@ -1,8 +1,6 @@
 import requests as http_requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from typing import List
 
 import schemas
@@ -10,8 +8,7 @@ import models
 from database import get_db
 from auth import get_current_user
 from crypto import encrypt_token, decrypt_token
-
-limiter = Limiter(key_func=get_remote_address)
+from rate_limit import limiter
 router = APIRouter(prefix="/todoist", tags=["todoist"])
 
 TODOIST_API = "https://api.todoist.com/api/v1"
@@ -32,7 +29,7 @@ def todoist_status(current_user: models.User = Depends(get_current_user)):
     return {"connected": bool(current_user.todoist_token)}
 
 
-@router.put("/token")
+@router.put("/token", response_model=schemas.TodoistTokenStatus)
 @limiter.limit("10/minute")
 def save_todoist_token(
     request: Request,
@@ -57,7 +54,7 @@ def save_todoist_token(
     return {"connected": True}
 
 
-@router.delete("/token")
+@router.delete("/token", response_model=schemas.TodoistTokenStatus)
 def delete_todoist_token(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),

@@ -16,7 +16,7 @@ def test_link_task_to_entry(auth_client, db):
         f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["todoist_task_id"] == "task_123"
     assert "id" in data
@@ -33,13 +33,13 @@ def test_link_same_task_twice_no_duplicate(auth_client, db):
         f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
-    assert response1.status_code == 200
-    
+    assert response1.status_code == 201
+
     response2 = auth_client.post(
         f"/api/entries/{entry_id}/tasks",
         json={"todoist_task_id": "task_123"}
     )
-    assert response2.status_code == 200
+    assert response2.status_code == 201
     assert response1.json()["id"] == response2.json()["id"]
     
     tasks = db.query(models.EntryTask).filter_by(entry_id=entry_id).all()

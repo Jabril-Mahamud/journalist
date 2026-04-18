@@ -17,6 +17,7 @@ from .entries import (
     JournalEntryBase,
     JournalEntryCreate,
     JournalEntryUpdate,
+    UnlinkResult,
 )
 from .projects import Project, ProjectBase, ProjectCreate, ProjectUpdate
 from .templates import Template, TemplateBase, TemplateCreate, TemplateUpdate
@@ -39,6 +40,7 @@ __all__ = [
     "JournalEntry",
     "EntryTaskLink",
     "EntryTaskOut",
+    "UnlinkResult",
     # Todoist
     "TodoistTokenSave",
     "TodoistTokenStatus",

@@ -16,7 +16,7 @@ def test_create_entry(auth_client, db):
             "project_names": []
         }
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Test Entry"
     assert data["content"] == "This is my journal entry"
@@ -32,8 +32,8 @@ def test_create_entry_auto_creates_projects(auth_client, db):
             "project_names": ["work", "personal"]
         }
     )
-    assert response.status_code == 200
-    
+    assert response.status_code == 201
+
     projects = db.query(models.Project).all()
     assert len(projects) == 2
     project_names = [p.name for p in projects]

@@ -62,7 +62,7 @@ def seed_public(db, user):
 
 def test_create_template(auth_client, db):
     response = auth_client.post("/api/templates/", json=make_template_payload())
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == "My Template"
     assert data["icon"] == "📝"
@@ -78,7 +78,7 @@ def test_create_template_minimal(auth_client, db):
         "tags": [],
         "is_public": False,
     })
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["name"] == "Minimal"
 
 
@@ -87,7 +87,7 @@ def test_create_template_with_trigger(auth_client, db):
         trigger_conditions={"type": "day_of_week", "days": [0, 4]}
     )
     response = auth_client.post("/api/templates/", json=payload)
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["trigger_conditions"] == {"type": "day_of_week", "days": [0, 4]}
 
 
@@ -257,7 +257,7 @@ def test_delete_nonexistent_template_returns_404(auth_client):
 def test_fork_builtin_template(auth_client, db, test_user):
     builtin = seed_builtin(db)
     response = auth_client.post(f"/api/templates/{builtin.id}/fork")
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == builtin.name
     assert data["is_built_in"] is False
@@ -268,7 +268,7 @@ def test_fork_builtin_template(auth_client, db, test_user):
 def test_fork_public_template(auth_client, db, test_user, second_user):
     public = seed_public(db, second_user)
     response = auth_client.post(f"/api/templates/{public.id}/fork")
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["forked_from_id"] == public.id
     assert data["user_id"] == test_user.id
