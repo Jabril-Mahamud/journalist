@@ -9,6 +9,7 @@ import schemas
 import models
 from database import get_db
 from auth import get_current_user
+from crypto import encrypt_token, decrypt_token
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/todoist", tags=["todoist"])
@@ -23,7 +24,7 @@ def _todoist_headers(token: str) -> dict:
 def _get_todoist_token(current_user: models.User) -> str:
     if not current_user.todoist_token:
         raise HTTPException(status_code=400, detail="Todoist account not connected")
-    return current_user.todoist_token
+    return decrypt_token(current_user.todoist_token)
 
 
 @router.get("/status", response_model=schemas.TodoistTokenStatus)
@@ -49,9 +50,9 @@ def save_todoist_token(
     if not resp.ok:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+            detail="Could not reach Todoist"
         )
-    current_user.todoist_token = body.token
+    current_user.todoist_token = encrypt_token(body.token)
     db.commit()
     return {"connected": True}
 
@@ -80,7 +81,7 @@ def get_todoist_tasks(
     if not resp.ok:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+            detail="Could not reach Todoist"
         )
 
     proj_resp = http_requests.get(
@@ -131,7 +132,7 @@ def close_todoist_task(
     if not resp.ok:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+            detail="Could not reach Todoist"
         )
     return {"closed": True}
 
@@ -158,6 +159,6 @@ def reschedule_todoist_task(
     if not resp.ok:
         raise HTTPException(
             status_code=502,
-            detail=f"Could not reach Todoist: {resp.status_code} {resp.text}"
+            detail="Could not reach Todoist"
         )
     return {"rescheduled": True, "due_date": body.due_date}

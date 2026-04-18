@@ -5,7 +5,7 @@ auto-suggest when a user opens the new entry dialog.
 """
 
 import calendar
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -30,7 +30,7 @@ def matches_trigger(trigger_conditions: Optional[dict], now: Optional[datetime] 
           → False (project matching is handled by the frontend, not time-based)
     """
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
     if not trigger_conditions:
         return False

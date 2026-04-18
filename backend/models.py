@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Table, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
 
@@ -17,7 +17,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     clerk_user_id = Column(String(255), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     todoist_token = Column(String(255), nullable=True)
 
     entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
@@ -31,7 +31,7 @@ class Project(Base):
     name = Column(String(50), nullable=False, index=True)
     color = Column(String(7), nullable=False, default="#6366f1", server_default="#6366f1")
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="projects")
     entries = relationship("JournalEntry", secondary=entry_projects, back_populates="projects")
@@ -43,8 +43,8 @@ class JournalEntry(Base):
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="entries")
     projects = relationship("Project", secondary=entry_projects, back_populates="entries")
@@ -57,7 +57,7 @@ class EntryTask(Base):
     id = Column(Integer, primary_key=True, index=True)
     entry_id = Column(Integer, ForeignKey('journal_entries.id'), nullable=False)
     todoist_task_id = Column(String(50), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     entry = relationship("JournalEntry", back_populates="entry_tasks")
 
@@ -88,7 +88,7 @@ class Template(Base):
     trigger_conditions = Column(JSON, nullable=True)
     is_public = Column(Boolean, nullable=False, default=False, server_default='false')
     is_built_in = Column(Boolean, nullable=False, default=False, server_default='false')
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="templates")
     forked_from = relationship("Template", remote_side="Template.id")
