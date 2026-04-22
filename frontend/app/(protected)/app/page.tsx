@@ -10,7 +10,7 @@ import { EntryDialog } from '@/components/entry-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Calendar, Flame } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
-import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { getReadableTextColor, stripMarkdown, formatRelativeDate, calculateStreak } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 
 function formatHeaderDate(date: Date): string {
@@ -29,43 +29,6 @@ function formatHeaderDate(date: Date): string {
   const year = date.getFullYear()
 
   return `${weekday} ${day}${suffix} ${month}, ${year}`
-}
-
-function calculateStreak(entries: JournalEntry[]): number {
-  if (entries.length === 0) return 0
-
-  const uniqueDays = new Set(
-    entries.map((e) => new Date(e.created_at).toDateString())
-  )
-
-  const today = new Date()
-  const todayStr = today.toDateString()
-
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toDateString()
-
-  let startDate: Date
-  if (uniqueDays.has(todayStr)) {
-    startDate = today
-  } else if (uniqueDays.has(yesterdayStr)) {
-    startDate = yesterday
-  } else {
-    return 0
-  }
-
-  let streak = 0
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(startDate)
-    d.setDate(d.getDate() - i)
-    if (uniqueDays.has(d.toDateString())) {
-      streak++
-    } else {
-      break
-    }
-  }
-
-  return streak
 }
 
 function EntrySkeleton() {
@@ -90,25 +53,6 @@ export default function Home() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
   const { data: entries = [], isLoading, refetch } = useEntries()
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today'
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday'
-    } else {
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-      })
-    }
-  }
 
   const streak = calculateStreak(entries)
 
@@ -198,22 +142,23 @@ export default function Home() {
               {entries.map((entry, index) => {
                 const showDate =
                   index === 0 ||
-                  formatDate(entry.created_at) !==
-                    formatDate(entries[index - 1].created_at)
+                  formatRelativeDate(entry.created_at) !==
+                    formatRelativeDate(entries[index - 1].created_at)
 
                 return (
                   <div key={entry.id}>
                     {showDate && index !== 0 && (
                       <div className="mb-4 mt-2">
                         <h2 className="text-sm font-semibold text-muted-foreground">
-                          {formatDate(entry.created_at)}
+                          {formatRelativeDate(entry.created_at)}
                         </h2>
                         <Separator className="mt-2" />
                       </div>
                     )}
 
-                    <div
-                      className="group hover:bg-accent/50 -mx-4 px-4 py-4 rounded-lg transition-colors cursor-pointer"
+                    <button
+                      type="button"
+                      className="group hover:bg-accent/50 -mx-4 px-4 py-4 rounded-lg transition-colors cursor-pointer w-full text-left"
                       onClick={() => {
                         setSelectedEntry(entry)
                         setEntryDialogOpen(true)
@@ -248,7 +193,7 @@ export default function Home() {
                           {new Date(entry.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   </div>
                 )
               })}

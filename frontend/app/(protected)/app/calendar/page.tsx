@@ -6,17 +6,11 @@ import { useEntries } from '@/lib/hooks/useEntries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { EntryDialog } from '@/components/entry-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getReadableTextColor, stripMarkdown } from '@/lib/utils'
+import { getReadableTextColor, stripMarkdown, isSameDay, calculateStreak } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { ChevronLeft, ChevronRight, CalendarDays, Flame } from 'lucide-react'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-
-function isSameDay(d1: Date, d2: Date) {
-  return d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-}
 
 function toDateKey(d: Date) {
   return d.toISOString().split('T')[0]
@@ -360,20 +354,7 @@ export default function CalendarPage() {
     [entries, selectedDay]
   )
 
-  const streak = useMemo(() => {
-    if (!entries.length) return 0
-    const unique = new Set(entries.map(e => new Date(e.created_at).toDateString()))
-    const today = new Date()
-    const start = unique.has(today.toDateString()) ? today
-      : (() => { const y = new Date(today); y.setDate(y.getDate() - 1); return unique.has(y.toDateString()) ? y : null })()
-    if (!start) return 0
-    let count = 0
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(start); d.setDate(d.getDate() - i)
-      if (unique.has(d.toDateString())) count++; else break
-    }
-    return count
-  }, [entries])
+  const streak = useMemo(() => calculateStreak(entries), [entries])
 
   const handleHeatmapClick = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00')

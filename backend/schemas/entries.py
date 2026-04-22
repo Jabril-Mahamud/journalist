@@ -42,3 +42,7 @@ class EntryTaskOut(BaseModel):
     id: int
     todoist_task_id: str
     created_at: datetime
+
+
+class UnlinkResult(BaseModel):
+    unlinked: bool
