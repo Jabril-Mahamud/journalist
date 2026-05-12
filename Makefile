@@ -130,9 +130,8 @@ dev-be:
 ## stop: Stop port forwarding
 stop:
 	@echo "🛑 Stopping..."
-	@pkill -f "kubectl port-forward" 2>/dev/null || true
-	@lsof -ti:$(BACKEND_PORT) | xargs kill -9 2>/dev/null || true
-	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
+	@pkill -f "kubectl port-forward service/backend" 2>/dev/null || true
+	@pkill -f "kubectl port-forward service/frontend" 2>/dev/null || true
 	@echo "✅ Stopped (cluster and data preserved)"
 
 ## destroy: Delete local Kind cluster (⚠️  deletes all data)
@@ -332,7 +331,7 @@ _restart-pods:
 _port-forward:
 	@echo "🔌 Starting port forwarding..."
 	@chmod +x scripts/port-forward.sh
-	@./scripts/port-forward.sh
+	@BACKEND_PORT=$(BACKEND_PORT) FRONTEND_PORT=$(FRONTEND_PORT) ./scripts/port-forward.sh
 	@sleep 2 || true
 	@if pgrep -f "kubectl port-forward" >/dev/null 2>&1; then \
 		echo "✓ Port forwarding active"; \
