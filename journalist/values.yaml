@@ -20,3 +20,10 @@ ingress:
 postgres:
   enabled: true
   storage: 5Gi
+
+clerk:
+  jwks_url: ""
+  secret_key: ""
+
+cors:
+  allowed_origins: ""
