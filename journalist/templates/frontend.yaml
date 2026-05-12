@@ -27,7 +27,7 @@ spec:
             containers:
               - name: frontend
                 image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
-                imagePullPolicy: Always
+                imagePullPolicy: {{ .Values.frontend.imagePullPolicy | default "Always" }}
                 ports:
                   - containerPort: 3001
                 env:
