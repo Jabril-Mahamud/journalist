@@ -20,6 +20,13 @@ ingress:
 postgres:
   enabled: true
   storage: 5Gi
+  # Credentials. Leave empty in CI so the postgres-credentials Secret is NOT
+  # rendered and the manually-created cluster Secret is left untouched.
+  # Set these in values.secret.yaml for local kind dev.
+  user: ""
+  password: ""
+  db: ""
+  host: ""
 
 clerk:
   jwks_url: ""
