@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useMemo } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
@@ -291,7 +292,7 @@ export function useApi() {
     }
 
 
-    return {
+    return useMemo(() => ({
         getEntries,
         getEntry,
         createEntry,
@@ -317,5 +318,6 @@ export function useApi() {
         forkTemplate,
         getTemplateSuggestions,
         rescheduleTask,
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [getToken]);
 }

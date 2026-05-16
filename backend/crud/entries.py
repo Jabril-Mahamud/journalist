@@ -56,10 +56,16 @@ def get_entry(
     user_id: int,
 ) -> Optional[models.JournalEntry]:
     """Fetch a single entry. Returns None if not found or not owned by the user."""
-    return db.query(models.JournalEntry).filter(
-        models.JournalEntry.id == entry_id,
-        models.JournalEntry.user_id == user_id,
-    ).first()
+    return (
+        db.query(models.JournalEntry)
+        .options(joinedload(models.JournalEntry.projects))
+        .options(joinedload(models.JournalEntry.entry_tasks))
+        .filter(
+            models.JournalEntry.id == entry_id,
+            models.JournalEntry.user_id == user_id,
+        )
+        .first()
+    )
 
 
 def update_entry(

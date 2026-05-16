@@ -9,7 +9,7 @@ from main import app
 
 def test_create_project(auth_client, db):
     response = auth_client.post("/api/projects/", json={"name": "work", "color": "#ff0000"})
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == "work"
     assert data["color"] == "#ff0000"
@@ -18,10 +18,10 @@ def test_create_project(auth_client, db):
 
 def test_create_duplicate_project_returns_existing(auth_client, db):
     response1 = auth_client.post("/api/projects/", json={"name": "work"})
-    assert response1.status_code == 200
-    
+    assert response1.status_code == 201
+
     response2 = auth_client.post("/api/projects/", json={"name": "work"})
-    assert response2.status_code == 200
+    assert response2.status_code == 201
     
     assert response1.json()["id"] == response2.json()["id"]
     

@@ -10,6 +10,9 @@ FRONTEND_PORT  = 3001
 # ── GHCR config ──────────────────────────────────────────────────────────────
 REGISTRY       = ghcr.io/jabril-mahamud/journalist
 
+# Read Clerk publishable key from frontend/.env.local for Docker builds
+CLERK_PK       = $(shell grep NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY frontend/.env.local 2>/dev/null | cut -d= -f2)
+
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # COMMANDS
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -90,7 +93,7 @@ dev-fe:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@$(MAKE) --no-print-directory _check-cluster
 	@echo "🔨 Building frontend image..."
-	@docker build -t journalist-frontend:latest ./frontend
+	@docker build --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(CLERK_PK) -t journalist-frontend:latest ./frontend
 	@echo "✓ Image built"
 	@echo "📤 Loading image into cluster..."
 	@kind load docker-image journalist-frontend:latest --name $(CLUSTER_NAME)
@@ -127,9 +130,8 @@ dev-be:
 ## stop: Stop port forwarding
 stop:
 	@echo "🛑 Stopping..."
-	@pkill -f "kubectl port-forward" 2>/dev/null || true
-	@lsof -ti:$(BACKEND_PORT) | xargs kill -9 2>/dev/null || true
-	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
+	@pkill -f "kubectl port-forward service/backend" 2>/dev/null || true
+	@pkill -f "kubectl port-forward service/frontend" 2>/dev/null || true
 	@echo "✅ Stopped (cluster and data preserved)"
 
 ## destroy: Delete local Kind cluster (⚠️  deletes all data)
@@ -173,6 +175,7 @@ push-fe:
 	@docker build \
 		--platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL=https://dev.writejrnl.uk/api \
+		--build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(CLERK_PK) \
 		-t $(REGISTRY)/frontend:dev \
 		./frontend
 	@docker push $(REGISTRY)/frontend:dev
@@ -183,6 +186,7 @@ push-fe:
 	@docker build \
 		--platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL=https://writejrnl.uk \
+		--build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(CLERK_PK) \
 		-t $(REGISTRY)/frontend:latest \
 		./frontend
 	@docker push $(REGISTRY)/frontend:latest
@@ -295,7 +299,7 @@ _create-cluster:
 _build-local-images:
 	@echo "🔨 Building images..."
 	@docker build -t journalist-backend:latest ./backend
-	@docker build -t journalist-frontend:latest ./frontend
+	@docker build --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(CLERK_PK) -t journalist-frontend:latest ./frontend
 	@echo "✓ Images built"
 
 _load-images:
@@ -310,22 +314,24 @@ _helm-deploy-local:
 		--values ./journalist/values.secret.yaml \
 		--set backend.image=journalist-backend \
 		--set backend.tag=latest \
+		--set backend.imagePullPolicy=IfNotPresent \
 		--set frontend.image=journalist-frontend \
 		--set frontend.tag=latest \
+		--set frontend.imagePullPolicy=IfNotPresent \
 		--set ingress.enabled=false
 	@echo "✓ Deployed"
 
 _restart-pods:
 	@echo "🔄 Restarting pods to pick up new images..."
 	@kubectl rollout restart deployment/backend deployment/frontend
-	@kubectl rollout status deployment/backend --timeout=60s
-	@kubectl rollout status deployment/frontend --timeout=60s
+	@kubectl rollout status deployment/backend --timeout=120s
+	@kubectl rollout status deployment/frontend --timeout=120s
 	@echo "✓ Pods updated"
 
 _port-forward:
 	@echo "🔌 Starting port forwarding..."
 	@chmod +x scripts/port-forward.sh
-	@./scripts/port-forward.sh
+	@BACKEND_PORT=$(BACKEND_PORT) FRONTEND_PORT=$(FRONTEND_PORT) ./scripts/port-forward.sh
 	@sleep 2 || true
 	@if pgrep -f "kubectl port-forward" >/dev/null 2>&1; then \
 		echo "✓ Port forwarding active"; \

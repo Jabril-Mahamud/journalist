@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 import crud
 import schemas
 import models
 from database import get_db
 from auth import get_current_user
+from rate_limit import limiter
 
-limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
@@ -21,7 +19,7 @@ def get_projects(
     return crud.get_all_projects(db, current_user.id)
 
 
-@router.post("/", response_model=schemas.Project)
+@router.post("/", response_model=schemas.Project, status_code=201)
 @limiter.limit("60/minute")
 def create_project(
     request: Request,
@@ -47,7 +45,9 @@ def delete_project(
 
 
 @router.patch("/{project_id}", response_model=schemas.Project)
+@limiter.limit("60/minute")
 def update_project(
+    request: Request,
     project_id: int,
     update_data: schemas.ProjectUpdate,
     db: Session = Depends(get_db),

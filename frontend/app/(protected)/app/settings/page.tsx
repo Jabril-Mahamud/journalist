@@ -3,25 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useUser, useClerk } from '@clerk/nextjs'
-import { AppSidebar } from '@/components/app-sidebar'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TemplatesSection } from '@/components/templates-section'
-import { Sun, Moon, Monitor, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react'
+import { Sun, Moon, Monitor, CheckCircle2, XCircle, Loader2, ExternalLink, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApi } from '@/lib/api'
-import { useLocalStorage } from '@/hooks/use-local-storage'
 
 export default function SettingsPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sidebar_collapsed', false)
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const { user } = useUser()
   const { signOut } = useClerk()
   const api = useApi()
 
-  // Todoist state
   const [todoistToken, setTodoistToken] = useState('')
   const [todoistConnected, setTodoistConnected] = useState(false)
   const [todoistLoading, setTodoistLoading] = useState(false)
@@ -83,41 +78,27 @@ export default function SettingsPage() {
 
   if (!mounted) {
     return (
-      <div className="flex h-screen">
-        <AppSidebar
-          isCollapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-2xl mx-auto px-8 py-8">
-            <Skeleton className="h-10 w-28 mb-8" />
-            <div className="space-y-10">
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-5 w-56" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 flex-1" />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-12 w-full rounded-lg" />
-                <Skeleton className="h-12 w-full rounded-lg" />
-              </div>
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-5 w-80" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-10 w-28" />
-              </div>
+      <div className="max-w-[760px] mx-auto px-7 py-8 md:px-7 px-4.5">
+        <Skeleton className="h-10 w-28 mb-6" />
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-56" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 flex-1 rounded-[10px]" />
+              <Skeleton className="h-10 flex-1 rounded-[10px]" />
+              <Skeleton className="h-10 flex-1 rounded-[10px]" />
             </div>
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-12 w-full rounded-[14px]" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-4 w-80" />
+            <Skeleton className="h-12 w-full rounded-[14px]" />
           </div>
         </div>
       </div>
@@ -125,157 +106,159 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <AppSidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+    <div className="max-w-[760px] mx-auto px-7 py-8 md:py-8 pb-6">
+      {/* Header */}
+      <div className="mb-7">
+        <h1 className="font-serif text-[clamp(30px,5vw,52px)] font-medium tracking-tight leading-none">
+          Settings
+        </h1>
+      </div>
 
-      <main className="flex-1 overflow-auto">
-        <div className="max-w-2xl mx-auto px-8 py-8">
-          <h1 className="text-4xl font-bold mb-8">Settings</h1>
+      <div className="flex flex-col gap-8">
 
-          <div className="space-y-10">
-
-            {/* Appearance */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Appearance</h2>
-              <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
-              <div className="flex gap-2">
-                {themeOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={theme === option.value ? 'default' : 'outline'}
-                    onClick={() => setTheme(option.value)}
-                    className={cn(
-                      'flex-1',
-                      theme === option.value && 'bg-primary text-primary-foreground'
-                    )}
-                  >
-                    <option.icon className="mr-2 h-4 w-4" />
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Templates */}
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">Templates</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create and manage reusable entry templates.
-                </p>
-              </div>
-              <TemplatesSection />
-            </div>
-
-            {/* Todoist integration */}
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">Todoist</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Link your tasks to journal entries and complete them without leaving Journalist.
-                </p>
-              </div>
-
-              {todoistChecking ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Checking connection…
-                </div>
-              ) : todoistConnected ? (
-                <div className="flex items-center justify-between rounded-lg border px-4 py-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span className="font-medium">Todoist connected</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDisconnect}
-                    disabled={todoistLoading}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    {todoistLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Disconnect'
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="rounded-lg border px-4 py-3 space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <XCircle className="h-4 w-4 text-muted-foreground" />
-                      Not connected
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Paste your Todoist API token below. Find it in{' '}
-                      <a
-                        href="https://app.todoist.com/app/settings/integrations/developer"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline text-foreground inline-flex items-center gap-0.5"
-                      >
-                        Todoist → Settings → Integrations → Developer
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                      .
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        type="password"
-                        placeholder="Paste API token…"
-                        value={todoistToken}
-                        onChange={(e) => {
-                          setTodoistToken(e.target.value)
-                          setTodoistError(null)
-                        }}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSaveToken()}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={handleSaveToken}
-                        disabled={todoistLoading || !todoistToken.trim()}
-                      >
-                        {todoistLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Connect'
-                        )}
-                      </Button>
-                    </div>
-                    {todoistError && (
-                      <p className="text-sm text-destructive">{todoistError}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {todoistSuccess && (
-                <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Todoist connected successfully
-                </p>
-              )}
-            </div>
-
-            {/* Account */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Account</h2>
-              <p className="text-sm text-muted-foreground">
-                {user?.primaryEmailAddress?.emailAddress}
-              </p>
-              <Button variant="outline" onClick={() => signOut()}>
-                Sign out
-              </Button>
-            </div>
-
+        {/* Appearance */}
+        <section className="bg-card border border-border rounded-[14px] p-4 md:p-5">
+          <h2 className="font-serif text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            Appearance
+          </h2>
+          <p className="text-[13.5px] text-muted-foreground mb-4">Choose your preferred theme</p>
+          <div className="flex gap-2">
+            {themeOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-[10px] text-[13.5px] font-semibold transition-all border',
+                  theme === option.value
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                <option.icon className="h-4 w-4" />
+                {option.label}
+              </button>
+            ))}
           </div>
-        </div>
-      </main>
+        </section>
+
+        {/* Templates */}
+        <section className="bg-card border border-border rounded-[14px] p-4 md:p-5">
+          <h2 className="font-serif text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            Templates
+          </h2>
+          <p className="text-[13.5px] text-muted-foreground mb-4">
+            Create and manage reusable entry templates.
+          </p>
+          <TemplatesSection />
+        </section>
+
+        {/* Todoist integration */}
+        <section className="bg-card border border-border rounded-[14px] p-4 md:p-5">
+          <h2 className="font-serif text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            Todoist
+          </h2>
+          <p className="text-[13.5px] text-muted-foreground mb-4">
+            Link your tasks to journal entries and complete them without leaving Journalist.
+          </p>
+
+          {todoistChecking ? (
+            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Checking connection…
+            </div>
+          ) : todoistConnected ? (
+            <div className="flex items-center justify-between rounded-[10px] border border-border px-4 py-3">
+              <div className="flex items-center gap-2 text-[13.5px]">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="font-semibold">Todoist connected</span>
+              </div>
+              <button
+                onClick={handleDisconnect}
+                disabled={todoistLoading}
+                className="text-[13px] font-medium text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+              >
+                {todoistLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Disconnect'
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-[10px] border border-border px-4 py-3 space-y-3">
+              <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                <XCircle className="h-4 w-4" />
+                Not connected
+              </div>
+              <p className="text-[13px] text-muted-foreground">
+                Paste your Todoist API token below. Find it in{' '}
+                <a
+                  href="https://app.todoist.com/app/settings/integrations/developer"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-foreground inline-flex items-center gap-0.5"
+                >
+                  Todoist → Settings → Integrations → Developer
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                .
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="Paste API token…"
+                  value={todoistToken}
+                  onChange={(e) => {
+                    setTodoistToken(e.target.value)
+                    setTodoistError(null)
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveToken()}
+                  className="flex-1 rounded-[10px]"
+                />
+                <button
+                  onClick={handleSaveToken}
+                  disabled={todoistLoading || !todoistToken.trim()}
+                  className="px-3.5 py-2 bg-primary text-primary-foreground rounded-[10px] text-[13px] font-semibold hover:brightness-105 active:translate-y-px transition-all disabled:opacity-50"
+                >
+                  {todoistLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Connect'
+                  )}
+                </button>
+              </div>
+              {todoistError && (
+                <p className="text-[13px] text-destructive">{todoistError}</p>
+              )}
+            </div>
+          )}
+
+          {todoistSuccess && (
+            <p className="text-[13px] text-green-600 dark:text-green-400 flex items-center gap-1.5 mt-3">
+              <CheckCircle2 className="h-4 w-4" />
+              Todoist connected successfully
+            </p>
+          )}
+        </section>
+
+        {/* Account */}
+        <section className="bg-card border border-border rounded-[14px] p-4 md:p-5">
+          <h2 className="font-serif text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            Account
+          </h2>
+          <p className="text-[13.5px] text-muted-foreground mb-4">
+            {user?.primaryEmailAddress?.emailAddress}
+          </p>
+          <button
+            onClick={() => signOut()}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </button>
+        </section>
+
+      </div>
     </div>
   )
 }

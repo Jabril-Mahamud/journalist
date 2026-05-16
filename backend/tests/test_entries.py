@@ -16,7 +16,7 @@ def test_create_entry(auth_client, db):
             "project_names": []
         }
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Test Entry"
     assert data["content"] == "This is my journal entry"
@@ -32,8 +32,8 @@ def test_create_entry_auto_creates_projects(auth_client, db):
             "project_names": ["work", "personal"]
         }
     )
-    assert response.status_code == 200
-    
+    assert response.status_code == 201
+
     projects = db.query(models.Project).all()
     assert len(projects) == 2
     project_names = [p.name for p in projects]
@@ -144,3 +144,17 @@ def test_update_nonexistent_entry_returns_404(auth_client):
 def test_delete_nonexistent_entry_returns_404(auth_client):
     response = auth_client.delete("/api/entries/999")
     assert response.status_code == 404
+
+
+def test_deleting_user_cascades_to_entries(db, test_user):
+    entry = models.JournalEntry(
+        title="Test", content="Content", user_id=test_user.id
+    )
+    db.add(entry)
+    db.commit()
+
+    db.delete(test_user)
+    db.commit()
+
+    entries = db.query(models.JournalEntry).all()
+    assert len(entries) == 0

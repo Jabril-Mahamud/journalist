@@ -5,10 +5,7 @@ ingress:
 
 frontend:
   tag: latest
+  apiUrl: "https://writejrnl.uk/api"
 
 backend:
   tag: latest
-
-cloudsql:
-  enabled: true
-  instanceConnectionName: "journalist-490612:europe-west2:journalist-db"
