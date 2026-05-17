@@ -148,6 +148,16 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.CIVO_KUBECONFIG }}" | base64 -d > ~/.kube/config
 
+      - name: Adopt orphan secrets into Helm
+        run: |
+          kubectl -n ${{ steps.env.outputs.namespace }} annotate secret journalist-secrets \
+            meta.helm.sh/release-name=${{ steps.env.outputs.release }} \
+            meta.helm.sh/release-namespace=${{ steps.env.outputs.namespace }} \
+            --overwrite 2>/dev/null || true
+          kubectl -n ${{ steps.env.outputs.namespace }} label secret journalist-secrets \
+            app.kubernetes.io/managed-by=Helm \
+            --overwrite 2>/dev/null || true
+
       - name: Helm deploy
         run: |
           helm upgrade --install ${{ steps.env.outputs.release }} ./journalist \
