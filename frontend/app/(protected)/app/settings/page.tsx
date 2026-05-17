@@ -327,32 +327,6 @@ function AppearanceTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Accent color */}
-        <div className="bg-card border border-border rounded-[14px] p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">
-            Accent color
-            {prefs.mode === 'focus' && (
-              <span className="normal-case tracking-normal font-medium text-muted-foreground/60 ml-2">
-                Locked in Focus Mode
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap" style={{ opacity: prefs.mode === 'focus' ? 0.35 : 1, pointerEvents: prefs.mode === 'focus' ? 'none' : 'auto' }}>
-            {ACCENT_SWATCHES.map(c => (
-              <button
-                key={c}
-                className="w-8 h-8 rounded-[10px] transition-transform hover:scale-110"
-                style={{
-                  background: c,
-                  border: prefs.accent === c ? '2px solid var(--color-foreground)' : '2px solid transparent',
-                }}
-                onClick={() => setPrefs({ accent: c })}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Theme */}
         <div className="bg-card border border-border rounded-[14px] p-4">
           <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Theme</div>
@@ -375,27 +349,6 @@ function AppearanceTab() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Density */}
-        <div className="bg-card border border-border rounded-[14px] p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Density</div>
-          <div className="inline-flex bg-secondary rounded-md p-0.5 gap-0.5">
-            {(['cozy', 'regular', 'compact'] as Density[]).map(d => (
-              <button
-                key={d}
-                className={cn(
-                  "px-3 py-1.5 rounded text-[12px] font-medium capitalize transition-colors",
-                  prefs.density === d
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                onClick={() => setPrefs({ density: d })}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Body font */}
@@ -424,7 +377,6 @@ function AppearanceTab() {
           </div>
         </div>
       </div>
-    </div>
   )
 }
 

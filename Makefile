@@ -286,6 +286,10 @@ _check-cluster:
 		echo "❌ Local cluster not found — run 'make init' first"; \
 		exit 1; \
 	fi
+	@if [ "$$(kubectl config current-context)" != "kind-$(CLUSTER_NAME)" ]; then \
+		echo "🔀 Switching kubectl context to kind-$(CLUSTER_NAME)..."; \
+		kubectl config use-context kind-$(CLUSTER_NAME); \
+	fi
 
 _create-cluster:
 	@if kind get clusters 2>/dev/null | grep -q "^$(CLUSTER_NAME)$$"; then \
@@ -294,6 +298,10 @@ _create-cluster:
 		echo "📦 Creating cluster..."; \
 		kind create cluster --name $(CLUSTER_NAME); \
 		echo "✓ Cluster created"; \
+	fi
+	@if [ "$$(kubectl config current-context)" != "kind-$(CLUSTER_NAME)" ]; then \
+		echo "🔀 Switching kubectl context to kind-$(CLUSTER_NAME)..."; \
+		kubectl config use-context kind-$(CLUSTER_NAME); \
 	fi
 
 _build-local-images:
@@ -324,8 +332,8 @@ _helm-deploy-local:
 _restart-pods:
 	@echo "🔄 Restarting pods to pick up new images..."
 	@kubectl rollout restart deployment/backend deployment/frontend
-	@kubectl rollout status deployment/backend --timeout=120s
-	@kubectl rollout status deployment/frontend --timeout=120s
+	@kubectl rollout status deployment/backend --timeout=180s
+	@kubectl rollout status deployment/frontend --timeout=180s
 	@echo "✓ Pods updated"
 
 _port-forward:
