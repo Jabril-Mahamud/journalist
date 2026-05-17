@@ -159,4 +159,7 @@ jobs:
             --set backend.image=ghcr.io/${{ steps.env.outputs.repo }}/backend \
             --set backend.tag=${{ github.sha }} \
             --set frontend.image=ghcr.io/${{ steps.env.outputs.repo }}/frontend \
-            --set frontend.tag=${{ github.sha }}
+            --set frontend.tag=${{ github.sha }} \
+            --set clerk.jwks_url=${{ secrets.CLERK_JWKS_URL }} \
+            --set clerk.secret_key=${{ secrets.CLERK_SECRET_KEY }} \
+            --set cors.allowed_origins=${{ secrets.ALLOWED_ORIGINS }}
