@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { JournalEntry } from '@/lib/api'
 import { useEntries } from '@/lib/hooks/useEntries'
 import { EntryDialog } from '@/components/entry-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getReadableTextColor, stripMarkdown, isSameDay, calculateStreak } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, CalendarDays, Flame, PenLine, Inbox } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Flame, PenLine, Inbox } from 'lucide-react'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -24,32 +24,42 @@ function formatLongDate(date: Date) {
 
 // ─── Heatmap ──────────────────────────────────────────────────────────────────
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const RANGE_OPTIONS = [
-  { value: 90, label: '3 mo' },
-  { value: 180, label: '6 mo' },
-  { value: 365, label: 'year' },
-]
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const WEEKS = 53
 
-function getLastNDays(n: number): string[] {
-  const dates: string[] = []
-  const today = new Date()
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    dates.push(d.toISOString().split('T')[0])
-  }
-  return dates
+function monFirstDow(d: Date) {
+  return (d.getDay() + 6) % 7
 }
 
-function getDefaultRange(entries: JournalEntry[]) {
-  if (!entries.length) return 90
-  const earliest = entries.reduce((e, entry) => {
-    const d = new Date(entry.created_at)
-    return d < e ? d : e
-  }, new Date(entries[0].created_at))
-  const diff = Math.floor((Date.now() - earliest.getTime()) / 86400000)
-  return diff <= 90 ? 90 : diff <= 180 ? 180 : 365
+interface HeatDay {
+  date: Date
+  key: string
+  entries: number
+  words: number
+  isFuture: boolean
+}
+
+function buildHeatGrid(entryMap: Record<string, { entries: number; words: number }>): HeatDay[][] {
+  const today = new Date()
+  today.setHours(12, 0, 0, 0)
+  const endOfWeek = new Date(today)
+  endOfWeek.setDate(endOfWeek.getDate() + (6 - monFirstDow(endOfWeek)))
+  const start = new Date(endOfWeek)
+  start.setDate(start.getDate() - (WEEKS * 7) + 1)
+
+  const weeks: HeatDay[][] = []
+  for (let w = 0; w < WEEKS; w++) {
+    const days: HeatDay[] = []
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(start)
+      date.setDate(date.getDate() + w * 7 + d)
+      const key = toDateKey(date)
+      const data = entryMap[key] || { entries: 0, words: 0 }
+      days.push({ date, key, isFuture: date > today, ...data })
+    }
+    weeks.push(days)
+  }
+  return weeks
 }
 
 interface HeatmapProps {
@@ -59,95 +69,221 @@ interface HeatmapProps {
 }
 
 function Heatmap({ entries, selectedDay, onDayClick }: HeatmapProps) {
-  const [scope, setScope] = useState(() => getDefaultRange(entries))
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [metric, setMetric] = useState<'entries' | 'words'>('entries')
+  const [hover, setHover] = useState<{ x: number; y: number; cell: HeatDay } | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const grouped = useMemo(() => {
-    const map: Record<string, number> = {}
+  const entryMap = useMemo(() => {
+    const map: Record<string, { entries: number; words: number }> = {}
     entries.forEach(e => {
       const k = e.created_at.split('T')[0]
-      map[k] = (map[k] || 0) + 1
+      const wordCount = e.content?.trim().split(/\s+/).length || 0
+      if (!map[k]) map[k] = { entries: 0, words: 0 }
+      map[k].entries++
+      map[k].words += wordCount
     })
     return map
   }, [entries])
 
-  const allDays = getLastNDays(scope)
-  const todayStr = new Date().toISOString().split('T')[0]
+  const weeks = useMemo(() => buildHeatGrid(entryMap), [entryMap])
+  const todayKey = toDateKey(new Date())
 
-  const weeks: string[][] = []
-  for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7))
+  const maxWords = useMemo(() => weeks.flat().reduce((m, d) => Math.max(m, d.words), 0), [weeks])
 
-  const activeDays = Object.keys(grouped).filter(d => allDays.includes(d)).length
+  const intensity = (d: HeatDay) => {
+    if (d.isFuture) return -1
+    const v = metric === 'entries' ? d.entries : d.words
+    if (!v) return 0
+    if (metric === 'entries') return Math.min(4, v)
+    const r = v / (maxWords || 1)
+    if (r > 0.75) return 4
+    if (r > 0.50) return 3
+    if (r > 0.25) return 2
+    return 1
+  }
 
-  const getCellClass = (count: number) => {
-    if (count === 0) return 'bg-secondary'
-    if (count === 1) return 'bg-primary/25'
-    if (count === 2) return 'bg-primary/45'
-    if (count === 3) return 'bg-primary/65'
+  const allDays = weeks.flat().filter(d => !d.isFuture)
+  const totalEntries = allDays.reduce((s, d) => s + d.entries, 0)
+  const totalWords = allDays.reduce((s, d) => s + d.words, 0)
+  const activeDays = allDays.filter(d => d.entries > 0).length
+  let curStreak = 0
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    if (allDays[i].entries > 0) curStreak++; else break
+  }
+  let longest = 0, run = 0
+  allDays.forEach(d => { if (d.entries > 0) { run++; longest = Math.max(longest, run) } else run = 0 })
+
+  const monthLabels = useMemo(() => {
+    const labels: { wi: number; label: string }[] = []
+    let lastM = -1, lastWi = -99
+    weeks.forEach((wk, wi) => {
+      const m = wk[0].date.getMonth()
+      if (m !== lastM && wi - lastWi >= 3) {
+        labels.push({ wi, label: MONTH_SHORT[m] })
+        lastM = m
+        lastWi = wi
+      }
+    })
+    return labels
+  }, [weeks])
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+  }, [])
+
+  const showTip = (e: React.MouseEvent, d: HeatDay) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const parent = cardRef.current?.getBoundingClientRect()
+    if (!parent) return
+    setHover({
+      x: rect.left + rect.width / 2 - parent.left,
+      y: rect.top - parent.top,
+      cell: d,
+    })
+  }
+
+  const cellClass = (level: number) => {
+    if (level === 0) return 'bg-secondary'
+    if (level === 1) return 'bg-primary/20'
+    if (level === 2) return 'bg-primary/45'
+    if (level === 3) return 'bg-primary/70'
     return 'bg-primary'
   }
 
   return (
-    <div ref={containerRef} className="bg-card border border-border rounded-[14px] p-4 md:p-[18px] mb-6">
-      <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2.5">
-        <div>
-          <div className="font-serif text-[22px] md:text-[22px] text-[18px] font-medium tracking-tight">
-            {entries.length} entries in the last year
+    <div ref={cardRef} className="bg-card border border-border rounded-[14px] p-4 md:p-[18px] mb-6 relative">
+      {/* Header: stats + metric toggle */}
+      <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+        <div className="min-w-0">
+          <div className="font-serif text-[15px] text-muted-foreground font-medium tracking-tight flex items-baseline gap-2 flex-wrap">
+            {metric === 'entries' ? (
+              <><span className="text-[28px] text-foreground font-medium tabular-nums tracking-tighter">{totalEntries}</span> entries</>
+            ) : (
+              <><span className="text-[28px] text-foreground font-medium tabular-nums tracking-tighter">{totalWords > 1000 ? `${(totalWords / 1000).toFixed(1)}k` : totalWords}</span> words</>
+            )}
+            <span className="text-[13px] text-muted-foreground">· past year</span>
           </div>
-          <div className="text-[12px] text-muted-foreground mt-0.5">
-            {activeDays} active days · current {calculateStreak(entries)} days
+          <div className="text-[12.5px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+            <span><b className="font-semibold text-foreground/70">{activeDays}</b> active days</span>
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1 text-primary font-semibold">
+              <Flame className="h-[11px] w-[11px]" /> {curStreak}-day streak
+            </span>
+            <span className="text-border">·</span>
+            <span>longest <b className="font-semibold text-foreground/70">{longest}</b></span>
           </div>
         </div>
-        <div className="inline-flex bg-secondary rounded-md p-0.5 gap-0.5">
-          {RANGE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              className={`px-2.5 py-1 rounded text-[11.5px] font-medium transition-colors ${scope === opt.value
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-                }`}
-              onClick={() => setScope(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="inline-flex bg-secondary rounded-md p-[3px] gap-0.5 shrink-0">
+          <button
+            className={`px-[11px] py-[5px] rounded-[5px] text-[12px] font-medium transition-colors ${metric === 'entries' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setMetric('entries')}
+          >
+            Entries
+          </button>
+          <button
+            className={`px-[11px] py-[5px] rounded-[5px] text-[12px] font-medium transition-colors ${metric === 'words' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setMetric('words')}
+          >
+            Words
+          </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-1.5">
-        <div className="flex gap-[3px]" style={{ minWidth: `${weeks.length * 14}px` }}>
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px]">
-              {week.map((date, di) => {
-                const count = grouped[date] || 0
-                const isToday = date === todayStr
-                const isSelected = date === selectedDay
+      {/* Grid */}
+      <div ref={scrollRef} className="overflow-x-auto overflow-y-visible pb-1 relative" style={{ scrollbarWidth: 'thin' }}>
+        <div className="grid w-max" style={{ gridTemplateColumns: '28px max-content', gridTemplateRows: '16px max-content', gap: '4px 6px' }}>
+          {/* Month labels row */}
+          <div
+            className="col-start-2 row-start-1 grid font-medium text-muted-foreground"
+            style={{ gridTemplateColumns: `repeat(${WEEKS}, 12px)`, columnGap: '3px', fontSize: '10.5px', letterSpacing: '0.02em' }}
+          >
+            {monthLabels.map((l, i) => (
+              <span key={i} className="whitespace-nowrap self-end leading-none" style={{ gridColumn: `${l.wi + 1} / span 3` }}>
+                {l.label}
+              </span>
+            ))}
+          </div>
+
+          {/* Day-of-week labels */}
+          <div
+            className="col-start-1 row-start-2 grid text-[10px] text-muted-foreground font-medium"
+            style={{ gridTemplateRows: 'repeat(7, 12px)', rowGap: '3px' }}
+          >
+            <span /><span className="leading-[12px] text-right">Mon</span><span />
+            <span className="leading-[12px] text-right">Wed</span><span />
+            <span className="leading-[12px] text-right">Fri</span><span />
+          </div>
+
+          {/* Heatmap cells */}
+          <div
+            className="col-start-2 row-start-2 grid"
+            style={{ gridTemplateColumns: `repeat(${WEEKS}, 12px)`, gridTemplateRows: 'repeat(7, 12px)', columnGap: '3px', rowGap: '3px' }}
+          >
+            {weeks.map((week, wi) =>
+              week.map((d, di) => {
+                const i = intensity(d)
+                const isSel = d.key === selectedDay
+                const isToday = d.key === todayKey
+                if (i === -1) return (
+                  <span
+                    key={`${wi}-${di}`}
+                    className="block"
+                    style={{ gridColumn: wi + 1, gridRow: di + 1, width: 12, height: 12 }}
+                  />
+                )
                 return (
                   <button
                     key={`${wi}-${di}`}
                     type="button"
-                    onClick={() => onDayClick(date)}
-                    className={`w-[11px] h-[11px] rounded-[2.5px] transition-all duration-100 hover:opacity-75 ${getCellClass(count)} ${isSelected ? 'ring-1 ring-foreground ring-offset-1 ring-offset-background' : ''
-                      } ${isToday && count === 0 ? 'ring-1 ring-primary/40 ring-offset-1 ring-offset-background' : ''}`}
-                    title={count ? `${count} entries` : 'no entries'}
+                    className={`block w-[12px] h-[12px] rounded-[3px] border-0 p-0 transition-transform duration-75 cursor-pointer
+                      ${cellClass(i)}
+                      ${isToday ? 'outline outline-[1.5px] outline-primary outline-offset-1' : ''}
+                      ${isSel ? 'outline outline-2 outline-foreground outline-offset-1 z-[3] relative' : ''}
+                      ${!isToday && !isSel ? 'hover:outline hover:outline-[1.5px] hover:outline-foreground/50 hover:outline-offset-1 hover:z-[2] hover:relative' : ''}
+                    `}
+                    style={{ gridColumn: wi + 1, gridRow: di + 1 }}
+                    onMouseEnter={(e) => showTip(e, d)}
+                    onMouseLeave={() => setHover(null)}
+                    onClick={() => onDayClick(d.key)}
+                    aria-label={`${d.date.toDateString()}, ${d.entries} entries`}
                   />
                 )
-              })}
-            </div>
-          ))}
+              })
+            )}
+          </div>
         </div>
+
+        {/* Tooltip */}
+        {hover && (
+          <div
+            className="absolute pointer-events-none whitespace-nowrap bg-foreground text-background px-2.5 py-1.5 rounded-md shadow-md z-10 flex flex-col items-center gap-px"
+            style={{ left: hover.x, top: hover.y, transform: 'translate(-50%, -100%)', marginTop: -6 }}
+          >
+            <strong className="font-semibold text-[11.5px]">
+              {hover.cell.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </strong>
+            <span className="text-[10.5px] opacity-75">
+              {metric === 'entries'
+                ? (hover.cell.entries ? `${hover.cell.entries} ${hover.cell.entries === 1 ? 'entry' : 'entries'}` : 'No entries')
+                : (hover.cell.words ? `${hover.cell.words.toLocaleString()} words` : 'No writing')}
+            </span>
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rotate-45 w-2 h-2 bg-foreground" />
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-1 mt-2.5">
-        <span className="text-[11px] text-muted-foreground">Less</span>
-        <span className="w-[11px] h-[11px] rounded-[2.5px] bg-secondary" />
-        <span className="w-[11px] h-[11px] rounded-[2.5px] bg-primary/25" />
-        <span className="w-[11px] h-[11px] rounded-[2.5px] bg-primary/45" />
-        <span className="w-[11px] h-[11px] rounded-[2.5px] bg-primary/65" />
-        <span className="w-[11px] h-[11px] rounded-[2.5px] bg-primary" />
-        <span className="text-[11px] text-muted-foreground">More</span>
-        <span className="ml-auto flex gap-2">
-          {MONTH_LABELS.map(m => <span key={m} className="text-[10px] text-muted-foreground hidden md:inline">{m}</span>)}
+      {/* Legend */}
+      <div className="flex items-center gap-1 mt-3 text-[11px] text-muted-foreground">
+        <span>Less</span>
+        <span className="w-[11px] h-[11px] rounded-[3px] bg-secondary" />
+        <span className="w-[11px] h-[11px] rounded-[3px] bg-primary/20" />
+        <span className="w-[11px] h-[11px] rounded-[3px] bg-primary/45" />
+        <span className="w-[11px] h-[11px] rounded-[3px] bg-primary/70" />
+        <span className="w-[11px] h-[11px] rounded-[3px] bg-primary" />
+        <span>More</span>
+        <span className="ml-auto text-[11px] text-muted-foreground/60 italic hidden md:inline">
+          Click any day to jump to it below
         </span>
       </div>
     </div>
