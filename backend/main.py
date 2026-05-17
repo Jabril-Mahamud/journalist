@@ -15,6 +15,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3001").split(","),
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -25,4 +26,10 @@ app.include_router(templates.router, prefix="/api")
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    jwks_url = os.getenv("CLERK_JWKS_URL", "")
+    origins = os.getenv("ALLOWED_ORIGINS", "")
+    return {
+        "status": "ok",
+        "clerk_configured": bool(jwks_url),
+        "allowed_origins": origins.split(",") if origins else [],
+    }

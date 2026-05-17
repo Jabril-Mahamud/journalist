@@ -27,7 +27,7 @@ def verify_clerk_token(token: str) -> dict:
     if not JWKS_URL:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token"
+            detail="Auth not configured (CLERK_JWKS_URL missing)"
         )
     try:
         jwks_client = _get_jwks_client()
@@ -44,9 +44,13 @@ def verify_clerk_token(token: str) -> dict:
             detail="Token has expired"
         )
     except jwt.InvalidTokenError:
+        jwks_hint = ""
+        if JWKS_URL:
+            from urllib.parse import urlparse
+            jwks_hint = f" (jwks host: {urlparse(JWKS_URL).hostname})"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token"
+            detail=f"Invalid token{jwks_hint}"
         )
 
 
