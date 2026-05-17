@@ -150,26 +150,28 @@ jobs:
 
       - name: Adopt orphan secrets into Helm
         run: |
-          kubectl -n ${{ steps.env.outputs.namespace }} annotate secret journalist-secrets \
-            meta.helm.sh/release-name=${{ steps.env.outputs.release }} \
-            meta.helm.sh/release-namespace=${{ steps.env.outputs.namespace }} \
-            --overwrite 2>/dev/null || true
-          kubectl -n ${{ steps.env.outputs.namespace }} label secret journalist-secrets \
-            app.kubernetes.io/managed-by=Helm \
-            --overwrite 2>/dev/null || true
+          for SECRET in journalist-secrets postgres-credentials; do
+            kubectl -n ${{ steps.env.outputs.namespace }} annotate secret "$SECRET" \
+              meta.helm.sh/release-name=${{ steps.env.outputs.release }} \
+              meta.helm.sh/release-namespace=${{ steps.env.outputs.namespace }} \
+              --overwrite 2>/dev/null || true
+            kubectl -n ${{ steps.env.outputs.namespace }} label secret "$SECRET" \
+              app.kubernetes.io/managed-by=Helm \
+              --overwrite 2>/dev/null || true
+          done
 
       - name: Helm deploy
         run: |
           helm upgrade --install ${{ steps.env.outputs.release }} ./journalist \
             --namespace ${{ steps.env.outputs.namespace }} \
             --create-namespace \
-            --wait --timeout 5m \
+            --wait --timeout 8m \
             --values journalist/values.yaml \
             --values ${{ steps.env.outputs.values_file }} \
             --set backend.image=ghcr.io/${{ steps.env.outputs.repo }}/backend \
             --set backend.tag=${{ github.sha }} \
             --set frontend.image=ghcr.io/${{ steps.env.outputs.repo }}/frontend \
             --set frontend.tag=${{ github.sha }} \
-            --set clerk.jwks_url=${{ secrets.CLERK_JWKS_URL }} \
-            --set clerk.secret_key=${{ secrets.CLERK_SECRET_KEY }} \
-            --set cors.allowed_origins=${{ secrets.ALLOWED_ORIGINS }}
+            --set-string clerk.jwks_url="${{ secrets.CLERK_JWKS_URL }}" \
+            --set-string clerk.secret_key="${{ secrets.CLERK_SECRET_KEY }}" \
+            --set-string cors.allowed_origins="${{ secrets.ALLOWED_ORIGINS }}"

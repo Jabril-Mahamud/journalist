@@ -9,6 +9,7 @@ fi
 
 # Wait for database to be ready
 echo "Waiting for database to be ready..."
+DB_READY=false
 for i in $(seq 1 30); do
   python3 -c "
 import psycopg2, os, sys
@@ -17,13 +18,17 @@ try:
     sys.exit(0)
 except:
     sys.exit(1)
-" && break
+" && { DB_READY=true; break; }
   echo "Attempt $i/30 — database not ready, retrying in 2s..."
   sleep 2
 done
 
-echo "Running database migrations..."
-yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations
+if [ "$DB_READY" = true ]; then
+  echo "Running database migrations..."
+  yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations || echo "WARNING: migrations failed, starting server anyway"
+else
+  echo "WARNING: database not reachable after 60s, starting server without migrations"
+fi
 
 echo "Starting server..."
 exec uvicorn main:app --host 0.0.0.0 --port 8001
