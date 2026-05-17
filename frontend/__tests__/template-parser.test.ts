@@ -5,7 +5,7 @@ import {
     defaultValues,
     blocksToRaw,
 } from '../lib/template-parser'
-import type { FieldBlock, StaticBlock, RowBlock } from '../lib/template-parser'
+import type { FieldBlock, RowBlock } from '../lib/template-parser'
 
 // ─── parseTemplate ────────────────────────────────────────────────────────────
 

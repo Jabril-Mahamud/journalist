@@ -13,7 +13,6 @@ import {
   Sun,
   Moon,
   LogOut,
-  User,
   Menu,
   Search,
   X,
@@ -238,7 +237,7 @@ function MobileTabBar() {
 
   return (
     <nav className="h-16 border-t border-border bg-card grid grid-cols-5 items-center pb-safe">
-      {tabs.map((tab, i) => {
+      {tabs.map((tab) => {
         if (tab.type === "fab") {
           return (
             <Link key="fab" href="/app" className="justify-self-center">

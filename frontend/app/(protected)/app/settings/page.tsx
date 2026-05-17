@@ -7,10 +7,10 @@ import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TemplatesSection } from '@/components/templates-section'
-import { Sun, Moon, Monitor, CheckCircle2, XCircle, Loader2, ExternalLink, LogOut, Download, Trash2, User, ShieldCheck } from 'lucide-react'
+import { Sun, Moon, Monitor, CheckCircle2, Loader2, ExternalLink, LogOut, Download, Trash2, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApi } from '@/lib/api'
-import { usePreferences, type DisplayMode, type Density } from '@/lib/preferences'
+import { usePreferences, type Density } from '@/lib/preferences'
 
 const SETTING_TABS = [
   { id: 'account', label: 'Account' },
@@ -289,6 +289,7 @@ function AppearanceTab() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
   useEffect(() => { setMounted(true) }, [])
 
   const themeOptions = [
@@ -545,6 +546,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('appearance')
   const [mounted, setMounted] = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
   useEffect(() => { setMounted(true) }, [])
 
   if (!mounted) {

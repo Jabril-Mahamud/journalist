@@ -5,7 +5,7 @@ import { JournalEntry } from '@/lib/api'
 import { useEntries } from '@/lib/hooks/useEntries'
 import { EntryDialog } from '@/components/entry-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getReadableTextColor, stripMarkdown, isSameDay, calculateStreak } from '@/lib/utils'
+import { getReadableTextColor, stripMarkdown, isSameDay } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, Flame, PenLine, Inbox } from 'lucide-react'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
