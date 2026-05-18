@@ -12,6 +12,7 @@ from database import get_db
 security = HTTPBearer(auto_error=False)
 
 JWKS_URL = os.getenv("CLERK_JWKS_URL")
+EXPECTED_AUDIENCE = os.getenv("CLERK_EXPECTED_AUDIENCE")
 
 _jwks_client: Optional[PyJWKClient] = None
 
@@ -32,12 +33,13 @@ def verify_clerk_token(token: str) -> dict:
     try:
         jwks_client = _get_jwks_client()
         signing_key = jwks_client.get_signing_key_from_jwt(token)
-        return jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            options={"verify_exp": True}
-        )
+        decode_kwargs = {
+            "algorithms": ["RS256"],
+            "options": {"verify_exp": True, "verify_aud": bool(EXPECTED_AUDIENCE)},
+        }
+        if EXPECTED_AUDIENCE:
+            decode_kwargs["audience"] = EXPECTED_AUDIENCE
+        return jwt.decode(token, signing_key.key, **decode_kwargs)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

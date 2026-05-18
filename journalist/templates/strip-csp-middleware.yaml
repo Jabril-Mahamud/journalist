@@ -6,5 +6,5 @@ metadata:
 spec:
   headers:
     customResponseHeaders:
-      Content-Security-Policy: ""
+      Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev; connect-src 'self' https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src https://*.clerk.accounts.dev"
 {{- end }}

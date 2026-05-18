@@ -31,3 +31,6 @@ clerk:
 
 cors:
   allowed_origins: ""
+
+encryption:
+  key: ""

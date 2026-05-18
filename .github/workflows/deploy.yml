@@ -174,4 +174,5 @@ jobs:
             --set frontend.tag=${{ github.sha }} \
             --set-string clerk.jwks_url="${{ secrets.CLERK_JWKS_URL }}" \
             --set-string clerk.secret_key="${{ secrets.CLERK_SECRET_KEY }}" \
-            --set-string cors.allowed_origins="${{ secrets.ALLOWED_ORIGINS }}"
+            --set-string cors.allowed_origins="${{ secrets.ALLOWED_ORIGINS }}" \
+            --set-string encryption.key="${{ secrets.ENCRYPTION_KEY }}"
