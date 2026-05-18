@@ -164,9 +164,8 @@ function IntegrationsTab() {
         {todoistConnected && (
           <>
             <div className="h-px bg-border" />
-            <div className="px-4 py-2">
-              <ToggleRow label="Pull today's tasks into new entries" defaultOn />
-              <ToggleRow label="Auto-link mentioned tasks" defaultOn />
+            <div className="px-4 py-2.5 text-[12.5px] text-muted-foreground">
+              Tasks will appear in the sidebar and can be linked to entries.
             </div>
           </>
         )}
@@ -233,27 +232,6 @@ function IntegrationsTab() {
         </div>
       </div>
     </div>
-  )
-}
-
-function ToggleRow({ label, defaultOn = false }: { label: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(defaultOn)
-  return (
-    <button
-      className="flex items-center justify-between w-full py-2.5 text-[13.5px] gap-4"
-      onClick={() => setOn(!on)}
-    >
-      <span>{label}</span>
-      <span className={cn(
-        "w-9 h-[22px] rounded-full relative transition-colors flex-shrink-0",
-        on ? "bg-primary" : "bg-border"
-      )}>
-        <span className={cn(
-          "absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-transform",
-          on && "translate-x-[14px]"
-        )} />
-      </span>
-    </button>
   )
 }
 
