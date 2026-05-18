@@ -54,9 +54,7 @@ function SidebarContent({
   const { setTheme, resolvedTheme } = useTheme()
   const { user } = useUser()
   const { signOut } = useClerk()
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => { setMounted(true) }, [])
+  const mounted = React.useSyncExternalStore(() => () => {}, () => true, () => false)
 
   const showLabel = !compact || mobile
   const isDark = mounted && resolvedTheme === "dark"
@@ -269,6 +267,11 @@ function MobileTabBar() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [prevPathname, setPrevPathname] = React.useState(pathname)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
+    setDrawerOpen(false)
+  }
 
   const pageTitle = React.useMemo(() => {
     if (pathname === "/app") return "Today"
@@ -276,10 +279,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname === "/app/calendar") return "Calendar"
     if (pathname === "/app/settings") return "Settings"
     return "Journalist"
-  }, [pathname])
-
-  React.useEffect(() => {
-    setDrawerOpen(false)
   }, [pathname])
 
   return (

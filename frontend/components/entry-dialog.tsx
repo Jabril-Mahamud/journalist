@@ -87,13 +87,17 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         }
     }, [api])
 
+    /* eslint-disable react-hooks/set-state-in-effect -- async data fetch */
     React.useEffect(() => {
         if (open && isEditing && entry) {
             loadEditData(entry.id)
         }
     }, [open, isEditing, entry, loadEditData])
+    /* eslint-enable react-hooks/set-state-in-effect */
 
-    React.useEffect(() => {
+    const [prevEntry, setPrevEntry] = React.useState(entry)
+    if (prevEntry !== entry) {
+        setPrevEntry(entry)
         if (entry) {
             form.reset({
                 title: entry.title,
@@ -103,8 +107,7 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         }
         setIsEditing(false)
         setSelectedTaskIds(new Set())
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [entry])
+    }
 
     const toggleTask = (taskId: string) => {
         setSelectedTaskIds(prev => {
