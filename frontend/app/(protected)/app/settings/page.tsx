@@ -10,7 +10,7 @@ import { TemplatesSection } from '@/components/templates-section'
 import { Sun, Moon, Monitor, CheckCircle2, Loader2, ExternalLink, LogOut, Download, Trash2, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApi } from '@/lib/api'
-import { usePreferences, type Density } from '@/lib/preferences'
+import { usePreferences } from '@/lib/preferences'
 
 const SETTING_TABS = [
   { id: 'account', label: 'Account' },
@@ -21,15 +21,6 @@ const SETTING_TABS = [
 ] as const
 
 type SettingsTab = (typeof SETTING_TABS)[number]['id']
-
-const ACCENT_SWATCHES = [
-  '#c14a2a',
-  '#5b6e3a',
-  '#2a6f7a',
-  '#7a4ec1',
-  '#b8862a',
-  '#3a3a3a',
-]
 
 function TodoistIcon({ className }: { className?: string }) {
   return (
