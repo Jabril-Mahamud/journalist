@@ -449,13 +449,13 @@ function DataTab() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
+        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px] opacity-60">
           <div>
             <div className="text-[13.5px] font-semibold">Export entries</div>
             <div className="text-[12px] text-muted-foreground mt-0.5">All entries as JSON or Markdown</div>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground hover:bg-secondary transition-colors">
-            <Download className="h-3.5 w-3.5" /> Export
+          <button disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground opacity-50 cursor-not-allowed">
+            <Download className="h-3.5 w-3.5" /> Coming soon
           </button>
         </div>
 
@@ -469,13 +469,13 @@ function DataTab() {
           </span>
         </div>
 
-        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
+        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px] opacity-60">
           <div>
             <div className="text-[13.5px] font-semibold">Delete account</div>
-            <div className="text-[12px] text-muted-foreground mt-0.5">Permanently remove all data within 30 days</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5">Permanently remove all data</div>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-destructive hover:bg-destructive/10 transition-colors">
-            <Trash2 className="h-3.5 w-3.5" /> Delete…
+          <button disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground opacity-50 cursor-not-allowed">
+            <Trash2 className="h-3.5 w-3.5" /> Coming soon
           </button>
         </div>
       </div>
