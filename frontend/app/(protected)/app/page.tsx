@@ -48,6 +48,7 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
   const { data: entries = [], isLoading, refetch } = useEntries()
 
   const streak = calculateStreak(entries)
@@ -103,7 +104,7 @@ export default function Home() {
       </div>
 
       {/* Suggestion card */}
-      <div className="bg-card border border-border rounded-[14px] p-4 md:p-5 mb-7 relative overflow-hidden">
+      {!suggestionDismissed && <div className="bg-card border border-border rounded-[14px] p-4 md:p-5 mb-7 relative overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary" />
         <div className="flex flex-col md:grid md:grid-cols-[auto_1fr_auto] gap-4 items-start md:items-center">
           <div className="flex flex-row md:flex-col items-center md:items-start gap-2.5">
@@ -119,7 +120,10 @@ export default function Home() {
             </p>
           </div>
           <div className="flex gap-2 self-end md:self-center">
-            <button className="px-3.5 py-2 rounded-[10px] text-[13px] font-semibold text-muted-foreground border border-border hover:bg-secondary transition-colors">
+            <button
+              className="px-3.5 py-2 rounded-[10px] text-[13px] font-semibold text-muted-foreground border border-border hover:bg-secondary transition-colors"
+              onClick={() => setSuggestionDismissed(true)}
+            >
               Skip
             </button>
             <button
@@ -131,7 +135,7 @@ export default function Home() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Entry groups */}
       {entries.length === 0 ? (
