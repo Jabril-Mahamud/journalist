@@ -164,9 +164,8 @@ function IntegrationsTab() {
         {todoistConnected && (
           <>
             <div className="h-px bg-border" />
-            <div className="px-4 py-2">
-              <ToggleRow label="Pull today's tasks into new entries" defaultOn />
-              <ToggleRow label="Auto-link mentioned tasks" defaultOn />
+            <div className="px-4 py-2.5 text-[12.5px] text-muted-foreground">
+              Tasks will appear in the sidebar and can be linked to entries.
             </div>
           </>
         )}
@@ -233,27 +232,6 @@ function IntegrationsTab() {
         </div>
       </div>
     </div>
-  )
-}
-
-function ToggleRow({ label, defaultOn = false }: { label: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(defaultOn)
-  return (
-    <button
-      className="flex items-center justify-between w-full py-2.5 text-[13.5px] gap-4"
-      onClick={() => setOn(!on)}
-    >
-      <span>{label}</span>
-      <span className={cn(
-        "w-9 h-[22px] rounded-full relative transition-colors flex-shrink-0",
-        on ? "bg-primary" : "bg-border"
-      )}>
-        <span className={cn(
-          "absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-transform",
-          on && "translate-x-[14px]"
-        )} />
-      </span>
-    </button>
   )
 }
 
@@ -343,8 +321,11 @@ function AppearanceTab() {
         </div>
 
         {/* Body font */}
-        <div className="bg-card border border-border rounded-[14px] p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Body font</div>
+        <div className="bg-card border border-border rounded-[14px] p-4 opacity-60">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Body font</div>
+            <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Coming soon</span>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {[
               { id: 'serif', label: 'Serif', style: 'font-serif' },
@@ -353,12 +334,13 @@ function AppearanceTab() {
             ].map(f => (
               <button
                 key={f.id}
+                disabled
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 px-2 border rounded-[10px] text-[11px] font-medium transition-all",
-                  "text-muted-foreground",
+                  "flex flex-col items-center gap-1 py-2.5 px-2 border rounded-[10px] text-[11px] font-medium",
+                  "text-muted-foreground opacity-50 cursor-not-allowed",
                   f.id === 'serif'
                     ? "border-primary bg-primary/5 text-primary"
-                    : "border-border bg-secondary hover:border-muted-foreground/30"
+                    : "border-border bg-secondary"
                 )}
               >
                 <span className={cn("text-lg text-foreground", f.style)}>Aa</span>
@@ -449,33 +431,33 @@ function DataTab() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
+        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px] opacity-60">
           <div>
             <div className="text-[13.5px] font-semibold">Export entries</div>
             <div className="text-[12px] text-muted-foreground mt-0.5">All entries as JSON or Markdown</div>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground hover:bg-secondary transition-colors">
-            <Download className="h-3.5 w-3.5" /> Export
+          <button disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground opacity-50 cursor-not-allowed">
+            <Download className="h-3.5 w-3.5" /> Coming soon
           </button>
         </div>
 
         <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
           <div>
-            <div className="text-[13.5px] font-semibold">End-to-end encryption</div>
-            <div className="text-[12px] text-muted-foreground mt-0.5">Entries are encrypted before they leave your device</div>
+            <div className="text-[13.5px] font-semibold">Encryption</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5">Data encrypted at rest via TLS and server-side storage encryption</div>
           </div>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-            <ShieldCheck className="h-3 w-3" /> enabled
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-secondary text-muted-foreground">
+            <ShieldCheck className="h-3 w-3" /> server-side
           </span>
         </div>
 
-        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
+        <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px] opacity-60">
           <div>
             <div className="text-[13.5px] font-semibold">Delete account</div>
-            <div className="text-[12px] text-muted-foreground mt-0.5">Permanently remove all data within 30 days</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5">Permanently remove all data</div>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-destructive hover:bg-destructive/10 transition-colors">
-            <Trash2 className="h-3.5 w-3.5" /> Delete…
+          <button disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold border border-border text-muted-foreground opacity-50 cursor-not-allowed">
+            <Trash2 className="h-3.5 w-3.5" /> Coming soon
           </button>
         </div>
       </div>
