@@ -26,10 +26,4 @@ app.include_router(templates.router, prefix="/api")
 
 @app.get("/health")
 def health():
-    jwks_url = os.getenv("CLERK_JWKS_URL", "")
-    origins = os.getenv("ALLOWED_ORIGINS", "")
-    return {
-        "status": "ok",
-        "clerk_configured": bool(jwks_url),
-        "allowed_origins": origins.split(",") if origins else [],
-    }
+    return {"status": "ok"}

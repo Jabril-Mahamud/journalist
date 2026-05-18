@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import models
@@ -21,10 +22,17 @@ def get_or_create_project(
     ).first()
 
     if not project:
-        project = models.Project(name=name, user_id=user_id, color=color)
-        db.add(project)
-        db.commit()
-        db.refresh(project)
+        try:
+            project = models.Project(name=name, user_id=user_id, color=color)
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+        except IntegrityError:
+            db.rollback()
+            project = db.query(models.Project).filter(
+                models.Project.name == name,
+                models.Project.user_id == user_id,
+            ).first()
 
     return project
 

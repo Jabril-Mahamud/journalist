@@ -1,5 +1,5 @@
 import requests as http_requests
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -114,7 +114,7 @@ def get_todoist_tasks(
 @limiter.limit("60/minute")
 def close_todoist_task(
     request: Request,
-    task_id: str,
+    task_id: str = Path(..., pattern=r'^[a-zA-Z0-9]+$'),
     current_user: models.User = Depends(get_current_user),
 ):
     token = _get_todoist_token(current_user)
@@ -138,8 +138,8 @@ def close_todoist_task(
 @limiter.limit("60/minute")
 def reschedule_todoist_task(
     request: Request,
-    task_id: str,
     body: schemas.TodoistReschedule,
+    task_id: str = Path(..., pattern=r'^[a-zA-Z0-9]+$'),
     current_user: models.User = Depends(get_current_user),
 ):
     """Update a task's due date. Body: { "due_date": "YYYY-MM-DD" }"""

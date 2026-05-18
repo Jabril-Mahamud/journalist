@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, subqueryload
 
 import models
 import schemas
@@ -41,7 +41,7 @@ def get_entries(
     return (
         db.query(models.JournalEntry)
         .options(joinedload(models.JournalEntry.projects))
-        .options(joinedload(models.JournalEntry.entry_tasks))
+        .options(subqueryload(models.JournalEntry.entry_tasks))
         .filter(models.JournalEntry.user_id == user_id)
         .order_by(models.JournalEntry.created_at.desc())
         .offset(skip)
@@ -59,7 +59,7 @@ def get_entry(
     return (
         db.query(models.JournalEntry)
         .options(joinedload(models.JournalEntry.projects))
-        .options(joinedload(models.JournalEntry.entry_tasks))
+        .options(subqueryload(models.JournalEntry.entry_tasks))
         .filter(
             models.JournalEntry.id == entry_id,
             models.JournalEntry.user_id == user_id,
