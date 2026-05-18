@@ -461,11 +461,11 @@ function DataTab() {
 
         <div className="flex items-center justify-between p-4 bg-card border border-border rounded-[10px]">
           <div>
-            <div className="text-[13.5px] font-semibold">End-to-end encryption</div>
-            <div className="text-[12px] text-muted-foreground mt-0.5">Entries are encrypted before they leave your device</div>
+            <div className="text-[13.5px] font-semibold">Encryption</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5">Data encrypted at rest via TLS and server-side storage encryption</div>
           </div>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-            <ShieldCheck className="h-3 w-3" /> enabled
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-secondary text-muted-foreground">
+            <ShieldCheck className="h-3 w-3" /> server-side
           </span>
         </div>
 
