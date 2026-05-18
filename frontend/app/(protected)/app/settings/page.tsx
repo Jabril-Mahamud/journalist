@@ -321,8 +321,11 @@ function AppearanceTab() {
         </div>
 
         {/* Body font */}
-        <div className="bg-card border border-border rounded-[14px] p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Body font</div>
+        <div className="bg-card border border-border rounded-[14px] p-4 opacity-60">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Body font</div>
+            <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Coming soon</span>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {[
               { id: 'serif', label: 'Serif', style: 'font-serif' },
@@ -331,12 +334,13 @@ function AppearanceTab() {
             ].map(f => (
               <button
                 key={f.id}
+                disabled
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 px-2 border rounded-[10px] text-[11px] font-medium transition-all",
-                  "text-muted-foreground",
+                  "flex flex-col items-center gap-1 py-2.5 px-2 border rounded-[10px] text-[11px] font-medium",
+                  "text-muted-foreground opacity-50 cursor-not-allowed",
                   f.id === 'serif'
                     ? "border-primary bg-primary/5 text-primary"
-                    : "border-border bg-secondary hover:border-muted-foreground/30"
+                    : "border-border bg-secondary"
                 )}
               >
                 <span className={cn("text-lg text-foreground", f.style)}>Aa</span>
