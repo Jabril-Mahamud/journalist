@@ -280,7 +280,7 @@ function AppearanceTab() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
+   
   useEffect(() => { setMounted(true) }, [])
 
   const themeOptions = [
@@ -489,7 +489,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('appearance')
   const [mounted, setMounted] = useState(false)
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
+   
   useEffect(() => { setMounted(true) }, [])
 
   if (!mounted) {
