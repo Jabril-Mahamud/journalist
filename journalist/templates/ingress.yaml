@@ -5,7 +5,6 @@ metadata:
   name: journalist-ingress
   annotations:
     kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-strip-csp@kubernetescrd
     {{- if .Values.ingress.tls }}
     cert-manager.io/cluster-issuer: letsencrypt-prod
     {{- end }}
