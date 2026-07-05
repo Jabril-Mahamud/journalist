@@ -14,9 +14,10 @@ for i in $(seq 1 30); do
   python3 -c "
 import psycopg2, os, sys
 try:
-    psycopg2.connect(os.environ['DATABASE_URL'])
+    psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=5)
     sys.exit(0)
-except:
+except Exception as e:
+    print(f'DB connect failed: {e!r}', file=sys.stderr)
     sys.exit(1)
 " && { DB_READY=true; break; }
   echo "Attempt $i/30 — database not ready, retrying in 2s..."
