@@ -281,8 +281,9 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
         defaultValues: { title: "", content: "", project_names: [] },
     })
 
-    // Reset dialog state when opened
-    React.useEffect(() => {
+    const [prevOpen, setPrevOpen] = React.useState(open)
+    if (prevOpen !== open) {
+        setPrevOpen(open)
         if (open) {
             setStep('pick-template')
             setSelectedTemplate(undefined)
@@ -291,8 +292,7 @@ export function NewEntryDialog({ open, onOpenChange, onSuccess }: NewEntryDialog
             form.reset()
             setSelectedTaskIds(new Set())
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open])
+    }
 
     const handleTemplateSelect = (template: Template | null) => {
         setSelectedTemplate(template)
