@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import jwt
 from jwt import PyJWKClient
+import logging
 import os
 from typing import Optional
 import models
@@ -103,19 +104,8 @@ def get_current_user(
     except HTTPException:
         raise
     except Exception:
+        logging.exception("Unexpected error during authentication")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
-
-
-def get_optional_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db)
-) -> Optional[models.User]:
-    if not credentials:
-        return None
-    try:
-        return get_current_user(credentials, db)
-    except HTTPException:
-        return None

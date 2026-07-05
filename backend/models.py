@@ -18,7 +18,7 @@ class User(Base):
     clerk_user_id = Column(String(255), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    todoist_token = Column(String(255), nullable=True)
+    todoist_token = Column(String(500), nullable=True)  # matches migration 0007
 
     entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")

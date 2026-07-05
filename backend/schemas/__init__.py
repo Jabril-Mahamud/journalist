@@ -22,12 +22,8 @@ from .entries import (
 from .projects import Project, ProjectBase, ProjectCreate, ProjectUpdate
 from .templates import Template, TemplateBase, TemplateCreate, TemplateUpdate
 from .todoist import TodoistReschedule, TodoistTask, TodoistTokenSave, TodoistTokenStatus
-from .users import User, UserBase
 
 __all__ = [
-    # Users
-    "UserBase",
-    "User",
     # Projects
     "ProjectBase",
     "ProjectCreate",

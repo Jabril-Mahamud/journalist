@@ -23,12 +23,13 @@ except:
   sleep 2
 done
 
-if [ "$DB_READY" = true ]; then
-  echo "Running database migrations..."
-  yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations || echo "WARNING: migrations failed, starting server anyway"
-else
-  echo "WARNING: database not reachable after 60s, starting server without migrations"
+if [ "$DB_READY" != true ]; then
+  echo "ERROR: database not reachable after 60s"
+  exit 1
 fi
+
+echo "Running database migrations..."
+yoyo apply --no-config-file --database "$DATABASE_URL" ./migrations
 
 echo "Starting server..."
 exec uvicorn main:app --host 0.0.0.0 --port 8001

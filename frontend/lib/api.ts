@@ -129,7 +129,8 @@ export function useApi() {
     // ── Entries ──────────────────────────────────────────────────────────────
 
     async function getEntries(): Promise<JournalEntry[]> {
-        const res = await fetchWithAuth(`${API_URL}/entries/`);
+        // ponytail: fetches up to the backend max in one shot; paginate when a user nears 500 entries
+        const res = await fetchWithAuth(`${API_URL}/entries/?limit=500`);
         return res.json();
     }
 

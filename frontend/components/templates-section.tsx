@@ -34,7 +34,6 @@ const templateFormSchema = z.object({
     description: z.string().max(500).optional(),
     icon: z.string().max(10).optional(),
     content: z.string().min(1, 'Content is required').max(100000),
-    is_public: z.boolean().optional(),
 })
 
 type TemplateFormValues = z.infer<typeof templateFormSchema>
@@ -74,7 +73,6 @@ function TemplateForm({
             description: '',
             icon: '',
             content: '',
-            is_public: false,
             ...defaultValues,
         },
     })
@@ -282,7 +280,6 @@ export function TemplatesSection() {
             content: values.content,
             description: values.description || undefined,
             icon: values.icon || undefined,
-            is_public: values.is_public ?? false,
         })
         setShowCreateForm(false)
     }
@@ -296,7 +293,6 @@ export function TemplatesSection() {
                 content: values.content,
                 description: values.description || undefined,
                 icon: values.icon || undefined,
-                is_public: values.is_public ?? false,
             },
         })
         setEditingTemplate(null)
@@ -385,7 +381,6 @@ export function TemplatesSection() {
                                 description: editingTemplate.description ?? '',
                                 icon: editingTemplate.icon ?? '',
                                 content: editingTemplate.content,
-                                is_public: editingTemplate.is_public,
                             }}
                             onSubmit={handleUpdate}
                             onCancel={() => setEditingTemplate(null)}

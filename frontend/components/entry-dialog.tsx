@@ -87,13 +87,11 @@ export function EntryDialog({ entry, open, onOpenChange, onUpdate }: EntryDialog
         }
     }, [api])
 
-    /* eslint-disable react-hooks/set-state-in-effect -- async data fetch */
     React.useEffect(() => {
         if (open && isEditing && entry) {
             loadEditData(entry.id)
         }
     }, [open, isEditing, entry, loadEditData])
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     const [prevEntry, setPrevEntry] = React.useState(entry)
     if (prevEntry !== entry) {
