@@ -1,0 +1,67 @@
+{{- if and .Values.postgres.enabled .Values.postgres.backup.enabled }}
+# Nightly pg_dump to a dedicated PVC. Restore with:
+#   gunzip -c /backups/<file>.sql.gz | psql -h postgres -U $POSTGRES_USER $POSTGRES_DB
+# ponytail: backups live on a PVC in the same cluster — covers bad migrations
+# and accidental deletes, not cluster/provider loss. Upload to Civo object
+# storage (s3 creds + aws-cli step) when off-cluster safety matters.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: postgres-backups
+spec:
+    accessModes: [ "ReadWriteOnce" ]
+    resources:
+        requests:
+            storage: {{ .Values.postgres.backup.storage | default "5Gi" }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: postgres-backup
+spec:
+    schedule: {{ .Values.postgres.backup.schedule | default "0 3 * * *" | quote }}
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    jobTemplate:
+        spec:
+            backoffLimit: 2
+            template:
+                spec:
+                    restartPolicy: Never
+                    containers:
+                      - name: pg-dump
+                        image: postgres:15-alpine
+                        envFrom:
+                          - secretRef:
+                                name: postgres-credentials
+                        command: ["/bin/sh", "-c"]
+                        args:
+                          - |
+                            set -eo pipefail
+                            export PGPASSWORD="$POSTGRES_PASSWORD"
+                            STAMP=$(date +%Y%m%d-%H%M%S)
+                            FILE="/backups/${POSTGRES_DB}-${STAMP}.sql.gz"
+                            echo "Dumping ${POSTGRES_DB} to ${FILE}..."
+                            pg_dump -h "$DB_HOST" -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "$FILE"
+                            gunzip -t "$FILE"
+                            [ -s "$FILE" ]
+                            echo "Backup OK: $(ls -lh "$FILE" | awk '{print $5}')"
+                            find /backups -name '*.sql.gz' -mtime +{{ .Values.postgres.backup.retentionDays | default 7 }} -delete
+                            echo "Retained backups:"
+                            ls -lh /backups
+                        resources:
+                            requests:
+                                cpu: 50m
+                                memory: 128Mi
+                            limits:
+                                cpu: 500m
+                                memory: 256Mi
+                        volumeMounts:
+                          - name: backups
+                            mountPath: /backups
+                    volumes:
+                      - name: backups
+                        persistentVolumeClaim:
+                            claimName: postgres-backups
+{{- end }}

@@ -24,6 +24,11 @@ postgres:
   password: journalist
   db: journalist
   host: postgres
+  backup:
+    enabled: true
+    schedule: "0 3 * * *" # nightly, UTC
+    retentionDays: 7
+    storage: 5Gi
 
 clerk:
   jwks_url: ""
